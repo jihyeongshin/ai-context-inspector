@@ -1,0 +1,29 @@
+<!-- https://plugins.jetbrains.com/docs/intellij/plugin-configuration-file.html -->
+<idea-plugin>
+    <id>io.github.jihyeongshin.ai-context-inspector</id>
+    <name>AI Context Inspector</name>
+    <vendor email="bs9992@kakao.com">jihyeongshin</vendor>
+
+    <description>
+        <![CDATA[IntelliJ plugin for extracting AI context from Java source files.]]>
+    </description>
+
+    <depends>com.intellij.modules.platform</depends>
+    <depends>com.intellij.modules.java</depends>
+
+    <actions>
+        <group id="AIContextInspectorGroup"
+               text="AI Context Inspector"
+               description="AI Context Inspector Actions"
+               popup="true">
+
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+
+            <action id="AiContextInspector.InspectCurrentFileAction"
+                    class="io.github.jihyeongshin.aicontextinspector.action.InspectCurrentFileAction"
+                    text="Inspect Current File"
+                    description="Inspect current file context"/>
+        </group>
+    </actions>
+
+</idea-plugin>
