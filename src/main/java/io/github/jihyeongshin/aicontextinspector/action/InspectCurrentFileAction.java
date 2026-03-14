@@ -6,31 +6,48 @@ import com.intellij.openapi.actionSystem.CommonDataKeys;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.psi.PsiFile;
+import com.intellij.psi.PsiJavaFile;
+import com.intellij.psi.PsiManager;
+import io.github.jihyeongshin.aicontextinspector.extractor.JavaContextExtractor;
+import io.github.jihyeongshin.aicontextinspector.model.ContextRenderer;
+import io.github.jihyeongshin.aicontextinspector.model.ContextSnapshot;
 import org.jetbrains.annotations.NotNull;
 
 public class InspectCurrentFileAction extends AnAction {
+
+    private final JavaContextExtractor extractor = new JavaContextExtractor();
+    private final ContextRenderer renderer = new ContextRenderer();
 
     @Override
     public void actionPerformed(@NotNull AnActionEvent anActionEvent) {
 
         Project project = anActionEvent.getProject();
-        if (project == null) return;
-
         VirtualFile virtualFile = anActionEvent.getData(CommonDataKeys.VIRTUAL_FILE);
-        if (virtualFile == null) {
-            Messages.showWarningDialog(project, "No file is selected", "AI Context Inspector");
+
+        if (project == null) {
             return;
         }
 
-        String message = """
-                Project: %s
-                File: %s
-                Path: %s
-                """.formatted(
-                project.getName(),
-                virtualFile.getName(),
-                virtualFile.getPath()
-        );
+        if (virtualFile == null) {
+            Messages.showWarningDialog(project, "No file is selected.", "AI Context Inspector");
+            return;
+        }
+
+        // virtualFile to PsiFile
+        PsiFile psiFile = PsiManager.getInstance(project).findFile(virtualFile);
+        if (!(psiFile instanceof PsiJavaFile javaFile)) {
+            Messages.showWarningDialog(
+                    project,
+                    "The selected file is not a Java file.",
+                    "AI Context Inspector"
+            );
+            return;
+        }
+
+        ContextSnapshot snapshot = extractor.extract(project, javaFile, virtualFile);
+        String message = renderer.render(snapshot);
+
         Messages.showInfoMessage(project, message, "AI Context Inspector");
 
     }
