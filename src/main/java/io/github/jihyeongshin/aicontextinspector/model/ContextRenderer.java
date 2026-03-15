@@ -13,6 +13,10 @@ public class ContextRenderer {
                 ClassType: %s
                 Annotations: %s
                 Imports: %s
+                Fields: %s
+                Methods: %s
+                Endpoints: %s
+                Dependencies: %s
                 """.formatted(
                 snapshot.projectName(),
                 snapshot.moduleName(),
@@ -22,7 +26,11 @@ public class ContextRenderer {
                 snapshot.className(),
                 snapshot.classType(),
                 snapshot.annotations(),
-                snapshot.imports()
+                snapshot.imports(),
+                snapshot.fields(),
+                snapshot.methods(),
+                snapshot.endpoints(),
+                snapshot.dependencies()
         );
     }
 }

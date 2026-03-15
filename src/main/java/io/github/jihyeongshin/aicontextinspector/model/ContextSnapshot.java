@@ -11,7 +11,11 @@ public record ContextSnapshot(
         String className,
         String classType,
         List<String> annotations,
-        List<String> imports
+        List<String> imports,
+        List<String> fields,
+        List<String> methods,
+        List<String> endpoints,
+        List<String> dependencies
 ) {
 
 }

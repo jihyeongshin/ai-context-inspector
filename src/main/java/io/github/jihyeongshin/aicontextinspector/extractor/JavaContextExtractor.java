@@ -39,6 +39,10 @@ public class JavaContextExtractor {
                 : Collections.emptyList();
 
         List<String> imports = extractImports(javaFile);
+        List<String> fields = primaryClass != null ? extractFields(primaryClass) : Collections.emptyList();
+        List<String> methods = primaryClass != null ? extractMethods(primaryClass) : Collections.emptyList();
+        List<String> endpoints = primaryClass != null ? extractEndpoints(primaryClass) : Collections.emptyList();
+        List<String> dependencies = primaryClass != null ? extractDependencies(primaryClass) : Collections.emptyList();
 
         return new ContextSnapshot(
                 projectName,
@@ -49,7 +53,11 @@ public class JavaContextExtractor {
                 className,
                 classType,
                 annotations,
-                imports
+                imports,
+                fields,
+                methods,
+                endpoints,
+                dependencies
         );
     }
 
@@ -96,6 +104,165 @@ public class JavaContextExtractor {
         }
         return imports;
     }
+
+    private List<String> extractFields(PsiClass psiClass) {
+        List<String> fields = new ArrayList<>();
+        for (PsiField field : psiClass.getFields()) {
+            String type = field.getType().getPresentableText();
+            String name = field.getName();
+            fields.add(type + " " + name);
+        }
+        return fields;
+    }
+
+    private List<String> extractMethods(PsiClass psiClass) {
+        List<String> methods = new ArrayList<>();
+        for (PsiMethod method : psiClass.getMethods()) {
+            if (method.isConstructor()) {
+                continue;
+            }
+
+            String returnType = method.getReturnType() != null
+                    ? method.getReturnType().getPresentableText()
+                    : "void";
+
+            StringBuilder params = new StringBuilder();
+            PsiParameter[] parameters = method.getParameterList().getParameters();
+            for (int i = 0; i < parameters.length; i++) {
+                if (i > 0) {
+                    params.append(", ");
+                }
+                params.append(parameters[i].getType().getPresentableText())
+                        .append(" ")
+                        .append(parameters[i].getName());
+            }
+
+            methods.add(method.getName() + "(" + params + "): " + returnType);
+        }
+        return methods;
+    }
+
+    private List<String> extractDependencies(PsiClass psiClass) {
+        List<String> dependencies = new ArrayList<>();
+        for (PsiField field : psiClass.getFields()) {
+            String typeName = field.getType().getPresentableText();
+
+            if (isInfrastructureType(typeName)) {
+                continue;
+            }
+
+            dependencies.add(typeName);
+        }
+        return dependencies;
+    }
+
+    private boolean isInfrastructureType(String typeName) {
+        return typeName.startsWith("List<")
+                || typeName.startsWith("Set<")
+                || typeName.startsWith("Map<")
+                || "String".equals(typeName)
+                || "Long".equals(typeName)
+                || "Integer".equals(typeName)
+                || "Boolean".equals(typeName)
+                || "int".equals(typeName)
+                || "long".equals(typeName)
+                || "boolean".equals(typeName);
+    }
+
+    private List<String> extractEndpoints(PsiClass psiClass) {
+        List<String> endpoints = new ArrayList<>();
+
+        String basePath = extractClassRequestMapping(psiClass);
+
+        for (PsiMethod method : psiClass.getMethods()) {
+            String httpMethod = null;
+            String subPath = "";
+
+            for (PsiAnnotation annotation : method.getAnnotations()) {
+                String qn = annotation.getQualifiedName();
+                if (qn == null) {
+                    continue;
+                }
+
+                if (qn.endsWith(".GetMapping")) {
+                    httpMethod = "GET";
+                    subPath = extractMappingValue(annotation);
+                } else if (qn.endsWith(".PostMapping")) {
+                    httpMethod = "POST";
+                    subPath = extractMappingValue(annotation);
+                } else if (qn.endsWith(".PutMapping")) {
+                    httpMethod = "PUT";
+                    subPath = extractMappingValue(annotation);
+                } else if (qn.endsWith(".DeleteMapping")) {
+                    httpMethod = "DELETE";
+                    subPath = extractMappingValue(annotation);
+                } else if (qn.endsWith(".PatchMapping")) {
+                    httpMethod = "PATCH";
+                    subPath = extractMappingValue(annotation);
+                } else if (qn.endsWith(".RequestMapping")) {
+                    httpMethod = "REQUEST";
+                    subPath = extractMappingValue(annotation);
+                }
+            }
+
+            if (httpMethod != null) {
+                endpoints.add(httpMethod + " " + normalizePath(basePath, subPath) + " -> " + method.getName());
+            }
+        }
+
+        return endpoints;
+    }
+
+    private String extractClassRequestMapping(PsiClass psiClass) {
+        for (PsiAnnotation annotation : psiClass.getAnnotations()) {
+            String qn = annotation.getQualifiedName();
+            if (qn != null && qn.endsWith(".RequestMapping")) {
+                return extractMappingValue(annotation);
+            }
+        }
+        return "";
+    }
+
+    private String extractMappingValue(PsiAnnotation annotation) {
+        PsiAnnotationMemberValue value = annotation.findAttributeValue("value");
+        if (value == null) {
+            value = annotation.findAttributeValue("path");
+        }
+        if (value == null) {
+            return "";
+        }
+
+        String text = value.getText();
+        if (text == null) {
+            return "";
+        }
+
+        return text.replace("\"", "").trim();
+    }
+
+    private String normalizePath(String basePath, String subPath) {
+        String base = basePath == null ? "" : basePath.trim();
+        String sub = subPath == null ? "" : subPath.trim();
+
+        if (base.isEmpty() && sub.isEmpty()) {
+            return "/";
+        }
+        if (base.isEmpty()) {
+            return ensureSlash(sub);
+        }
+        if (sub.isEmpty()) {
+            return ensureSlash(base);
+        }
+        return ensureSlash(base) + (sub.startsWith("/") ? sub : "/" + sub);
+    }
+
+    private String ensureSlash(String path) {
+        if (path == null || path.isBlank()) {
+            return "/";
+        }
+        return path.startsWith("/") ? path : "/" + path;
+    }
+
 
     private String toShortName(String qualifiedName) {
         int lastDotIndex = qualifiedName.lastIndexOf('.');
