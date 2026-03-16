@@ -1,4 +1,6 @@
-package io.github.jihyeongshin.aicontextinspector.model;
+package io.github.jihyeongshin.aicontextinspector.render;
+
+import io.github.jihyeongshin.aicontextinspector.model.ContextSnapshot;
 
 public class ContextRenderer {
 

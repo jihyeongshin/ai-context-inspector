@@ -10,8 +10,8 @@ import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiJavaFile;
 import com.intellij.psi.PsiManager;
 import io.github.jihyeongshin.aicontextinspector.extractor.JavaContextExtractor;
-import io.github.jihyeongshin.aicontextinspector.model.ContextRenderer;
 import io.github.jihyeongshin.aicontextinspector.model.ContextSnapshot;
+import io.github.jihyeongshin.aicontextinspector.render.ContextRenderer;
 import org.jetbrains.annotations.NotNull;
 
 public class InspectCurrentFileAction extends AnAction {
