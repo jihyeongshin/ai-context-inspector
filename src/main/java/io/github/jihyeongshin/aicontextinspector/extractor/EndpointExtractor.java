@@ -2,106 +2,274 @@ package io.github.jihyeongshin.aicontextinspector.extractor;
 
 import com.intellij.psi.PsiAnnotation;
 import com.intellij.psi.PsiAnnotationMemberValue;
+import com.intellij.psi.PsiArrayInitializerMemberValue;
 import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiMethod;
+import io.github.jihyeongshin.aicontextinspector.model.EndpointInfo;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class EndpointExtractor {
 
     public List<String> extract(PsiClass psiClass) {
-        List<String> endpoints = new ArrayList<>();
+        if (psiClass == null) {
+            return Collections.emptyList();
+        }
 
-        String basePath = extractClassRequestMapping(psiClass);
+        List<EndpointInfo> endpoints = extractEndpointInfos(psiClass);
+        List<String> result = new ArrayList<>();
+
+        for (EndpointInfo endpoint : endpoints) {
+            result.add(endpoint.toDisplayString());
+        }
+
+        return result;
+    }
+
+    public List<EndpointInfo> extractEndpointInfos(PsiClass psiClass) {
+        if (psiClass == null) {
+            return Collections.emptyList();
+        }
+
+        List<EndpointInfo> result = new ArrayList<>();
+        List<String> classPaths = extractClassLevelPaths(psiClass);
 
         for (PsiMethod method : psiClass.getMethods()) {
-            String httpMethod = null;
-            String subPath = "";
-
-            for (PsiAnnotation annotation : method.getAnnotations()) {
-                String qn = annotation.getQualifiedName();
-                if (qn == null) {
-                    continue;
-                }
-
-                if (qn.endsWith(".GetMapping")) {
-                    httpMethod = "GET";
-                    subPath = extractMappingValue(annotation);
-                } else if (qn.endsWith(".PostMapping")) {
-                    httpMethod = "POST";
-                    subPath = extractMappingValue(annotation);
-                } else if (qn.endsWith(".PutMapping")) {
-                    httpMethod = "PUT";
-                    subPath = extractMappingValue(annotation);
-                } else if (qn.endsWith(".DeleteMapping")) {
-                    httpMethod = "DELETE";
-                    subPath = extractMappingValue(annotation);
-                } else if (qn.endsWith(".PatchMapping")) {
-                    httpMethod = "PATCH";
-                    subPath = extractMappingValue(annotation);
-                } else if (qn.endsWith(".RequestMapping")) {
-                    httpMethod = "REQUEST";
-                    subPath = extractMappingValue(annotation);
-                }
+            EndpointMapping methodMapping = extractMethodLevelMapping(method);
+            if (methodMapping == null) {
+                continue;
             }
 
-            if (httpMethod != null) {
-                endpoints.add(httpMethod + " " + normalizePath(basePath, subPath) + " -> " + method.getName());
+            List<String> methodPaths = methodMapping.paths().isEmpty()
+                    ? List.of("")
+                    : methodMapping.paths();
+
+            for (String classPath : classPaths) {
+                for (String methodPath : methodPaths) {
+                    String normalizedPath = normalizePath(classPath, methodPath);
+
+                    result.add(new EndpointInfo(
+                            methodMapping.httpMethod(),
+                            normalizedPath,
+                            method.getName()
+                    ));
+                }
             }
         }
 
-        return endpoints;
+        return result;
     }
 
-    private String extractClassRequestMapping(PsiClass psiClass) {
+    private List<String> extractClassLevelPaths(PsiClass psiClass) {
         for (PsiAnnotation annotation : psiClass.getAnnotations()) {
-            String qn = annotation.getQualifiedName();
-            if (qn != null && qn.endsWith(".RequestMapping")) {
-                return extractMappingValue(annotation);
+            String qualifiedName = annotation.getQualifiedName();
+            if (qualifiedName == null) {
+                continue;
+            }
+
+            if (qualifiedName.endsWith(".RequestMapping")) {
+                List<String> paths = extractPaths(annotation);
+                return paths.isEmpty() ? List.of("") : paths;
             }
         }
-        return "";
+
+        return List.of("");
     }
 
-    private String extractMappingValue(PsiAnnotation annotation) {
-        PsiAnnotationMemberValue value = annotation.findAttributeValue("value");
-        if (value == null) {
-            value = annotation.findAttributeValue("path");
+    private EndpointMapping extractMethodLevelMapping(PsiMethod method) {
+        for (PsiAnnotation annotation : method.getAnnotations()) {
+            String qualifiedName = annotation.getQualifiedName();
+            if (qualifiedName == null) {
+                continue;
+            }
+
+            if (qualifiedName.endsWith(".GetMapping")) {
+                return new EndpointMapping("GET", extractPaths(annotation));
+            }
+
+            if (qualifiedName.endsWith(".PostMapping")) {
+                return new EndpointMapping("POST", extractPaths(annotation));
+            }
+
+            if (qualifiedName.endsWith(".PutMapping")) {
+                return new EndpointMapping("PUT", extractPaths(annotation));
+            }
+
+            if (qualifiedName.endsWith(".DeleteMapping")) {
+                return new EndpointMapping("DELETE", extractPaths(annotation));
+            }
+
+            if (qualifiedName.endsWith(".PatchMapping")) {
+                return new EndpointMapping("PATCH", extractPaths(annotation));
+            }
+
+            if (qualifiedName.endsWith(".RequestMapping")) {
+                String httpMethod = extractRequestMethod(annotation);
+                return new EndpointMapping(httpMethod, extractPaths(annotation));
+            }
         }
+
+        return null;
+    }
+
+    private List<String> extractPaths(PsiAnnotation annotation) {
+        PsiAnnotationMemberValue valueAttr = annotation.findDeclaredAttributeValue("value");
+        PsiAnnotationMemberValue pathAttr = annotation.findDeclaredAttributeValue("path");
+
+        PsiAnnotationMemberValue target = valueAttr != null ? valueAttr : pathAttr;
+        if (target == null) {
+            return Collections.emptyList();
+        }
+
+        return extractStringValues(target);
+    }
+
+    private List<String> extractStringValues(PsiAnnotationMemberValue value) {
         if (value == null) {
-            return "";
+            return Collections.emptyList();
+        }
+
+        if (value instanceof PsiArrayInitializerMemberValue arrayValue) {
+            List<String> result = new ArrayList<>();
+            for (PsiAnnotationMemberValue initializer : arrayValue.getInitializers()) {
+                String parsed = parseStringLiteral(initializer);
+                if (parsed != null) {
+                    result.add(parsed);
+                }
+            }
+            return result;
+        }
+
+        String parsed = parseStringLiteral(value);
+        if (parsed == null) {
+            return Collections.emptyList();
+        }
+
+        return List.of(parsed);
+    }
+
+    private String parseStringLiteral(PsiAnnotationMemberValue value) {
+        if (value == null) {
+            return null;
         }
 
         String text = value.getText();
         if (text == null) {
+            return null;
+        }
+
+        text = text.trim();
+
+        if (text.startsWith("\"") && text.endsWith("\"") && text.length() >= 2) {
+            return text.substring(1, text.length() - 1);
+        }
+
+        if ("\"\"".equals(text)) {
             return "";
         }
 
-        return text.replace("\"", "").trim();
+        return text;
     }
 
-    private String normalizePath(String basePath, String subPath) {
-        String base = basePath == null ? "" : basePath.trim();
-        String sub = subPath == null ? "" : subPath.trim();
+    private String extractRequestMethod(PsiAnnotation annotation) {
+        PsiAnnotationMemberValue methodAttr = annotation.findDeclaredAttributeValue("method");
+        if (methodAttr == null) {
+            return "REQUEST";
+        }
+
+        String text = methodAttr.getText();
+        if (text == null || text.isBlank()) {
+            return "REQUEST";
+        }
+
+        if (text.contains("RequestMethod.GET")) {
+            return "GET";
+        }
+        if (text.contains("RequestMethod.POST")) {
+            return "POST";
+        }
+        if (text.contains("RequestMethod.PUT")) {
+            return "PUT";
+        }
+        if (text.contains("RequestMethod.DELETE")) {
+            return "DELETE";
+        }
+        if (text.contains("RequestMethod.PATCH")) {
+            return "PATCH";
+        }
+
+        return "REQUEST";
+    }
+
+    private String normalizePath(String classPath, String methodPath) {
+        String base = sanitizePathPart(classPath);
+        String sub = sanitizePathPart(methodPath);
 
         if (base.isEmpty() && sub.isEmpty()) {
             return "/";
         }
+
         if (base.isEmpty()) {
-            return ensureSlash(sub);
+            return ensureStartsWithSlash(sub);
         }
+
         if (sub.isEmpty()) {
-            return ensureSlash(base);
+            return ensureStartsWithSlash(base);
         }
-        return ensureSlash(base) + (sub.startsWith("/") ? sub : "/" + sub);
+
+        String joined = trimTrailingSlash(base) + "/" + trimLeadingSlash(sub);
+        return ensureStartsWithSlash(joined);
     }
 
-    private String ensureSlash(String path) {
+    private String sanitizePathPart(String path) {
+        if (path == null) {
+            return "";
+        }
+
+        String trimmed = path.trim();
+        if (trimmed.equals("/")) {
+            return "";
+        }
+        return trimmed;
+    }
+
+    private String ensureStartsWithSlash(String path) {
         if (path == null || path.isBlank()) {
             return "/";
         }
+
         return path.startsWith("/") ? path : "/" + path;
     }
 
+    private String trimLeadingSlash(String path) {
+        if (path == null) {
+            return "";
+        }
+
+        int index = 0;
+        while (index < path.length() && path.charAt(index) == '/') {
+            index++;
+        }
+        return path.substring(index);
+    }
+
+    private String trimTrailingSlash(String path) {
+        if (path == null) {
+            return "";
+        }
+
+        int end = path.length();
+        while (end > 0 && path.charAt(end - 1) == '/') {
+            end--;
+        }
+        return path.substring(0, end);
+    }
+
+    private record EndpointMapping(
+            String httpMethod,
+            List<String> paths
+    ) {
+    }
 }
