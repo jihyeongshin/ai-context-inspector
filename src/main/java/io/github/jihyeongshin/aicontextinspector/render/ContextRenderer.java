@@ -1,6 +1,9 @@
 package io.github.jihyeongshin.aicontextinspector.render;
 
 import io.github.jihyeongshin.aicontextinspector.model.ContextSnapshot;
+import io.github.jihyeongshin.aicontextinspector.model.RelatedFileContext;
+
+import java.util.List;
 
 public class ContextRenderer {
 
@@ -34,5 +37,34 @@ public class ContextRenderer {
                 snapshot.endpoints(),
                 snapshot.dependencies()
         );
+    }
+
+    public String render(ContextSnapshot snapshot, List<RelatedFileContext> relatedFiles) {
+        StringBuilder sb = new StringBuilder();
+        sb.append(render(snapshot));
+
+        sb.append("RelatedFiles:\n");
+        if (relatedFiles == null || relatedFiles.isEmpty()) {
+            sb.append("[]\n");
+            return sb.toString();
+        }
+
+        for (RelatedFileContext related : relatedFiles) {
+            sb.append("- ")
+                    .append(related.relationType())
+                    .append(" | ")
+                    .append(related.classType())
+                    .append(" | ")
+                    .append(related.className())
+                    .append(" | ")
+                    .append(related.packageName())
+                    .append(" | ")
+                    .append(related.filePath())
+                    .append(" | dependencies=")
+                    .append(related.dependencies())
+                    .append("\n");
+        }
+
+        return sb.toString();
     }
 }

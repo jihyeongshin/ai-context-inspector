@@ -10,15 +10,21 @@ import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiJavaFile;
 import com.intellij.psi.PsiManager;
 import io.github.jihyeongshin.aicontextinspector.extractor.JavaContextExtractor;
+import io.github.jihyeongshin.aicontextinspector.extractor.RelatedContextCollector;
 import io.github.jihyeongshin.aicontextinspector.model.ContextSnapshot;
+import io.github.jihyeongshin.aicontextinspector.model.RelatedFileContext;
 import io.github.jihyeongshin.aicontextinspector.render.ContextRenderer;
 import io.github.jihyeongshin.aicontextinspector.ui.ContextPreviewDialog;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.List;
+
 public class InspectCurrentFileAction extends AnAction {
 
     private final JavaContextExtractor extractor = new JavaContextExtractor();
+    private final RelatedContextCollector relatedContextCollector = new RelatedContextCollector();
     private final ContextRenderer renderer = new ContextRenderer();
+
 
     @Override
     public void actionPerformed(@NotNull AnActionEvent anActionEvent) {
@@ -47,7 +53,8 @@ public class InspectCurrentFileAction extends AnAction {
         }
 
         ContextSnapshot snapshot = extractor.extract(project, javaFile, virtualFile);
-        String message = renderer.render(snapshot);
+        List<RelatedFileContext> relatedFiles = relatedContextCollector.collect(project, javaFile);
+        String message = renderer.render(snapshot, relatedFiles);
 
         new ContextPreviewDialog(project, message).show();
 
