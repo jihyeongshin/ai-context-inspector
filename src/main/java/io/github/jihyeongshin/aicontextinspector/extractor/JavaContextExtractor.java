@@ -4,6 +4,7 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiJavaFile;
+import io.github.jihyeongshin.aicontextinspector.model.ClassClassification;
 import io.github.jihyeongshin.aicontextinspector.model.ContextSnapshot;
 import io.github.jihyeongshin.aicontextinspector.model.FileContext;
 
@@ -33,6 +34,7 @@ public class JavaContextExtractor {
                     fileContext.packageName(),
                     "Unknown",
                     "Unknown",
+                    "Unknown",
                     List.of(),
                     importExtractor.extract(javaFile),
                     List.of(),
@@ -42,7 +44,7 @@ public class JavaContextExtractor {
             );
         }
 
-        String classType = classRoleClassifier.classify(primaryClass, fileContext.packageName());
+        ClassClassification classification = classRoleClassifier.classify(primaryClass, fileContext.packageName());
 
         return new ContextSnapshot(
                 fileContext.projectName(),
@@ -51,7 +53,8 @@ public class JavaContextExtractor {
                 fileContext.filePath(),
                 fileContext.packageName(),
                 fileContext.primaryClassName(),
-                classType,
+                classification.classRole(),
+                classification.springStereotype(),
                 annotationExtractor.extract(primaryClass),
                 importExtractor.extract(javaFile),
                 fieldExtractor.extract(primaryClass),

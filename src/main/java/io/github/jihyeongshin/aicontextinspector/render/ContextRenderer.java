@@ -15,7 +15,8 @@ public class ContextRenderer {
                 FilePath: %s
                 Package: %s
                 Class: %s
-                ClassType: %s
+                ClassRole: %s
+                SpringStereoType: %s
                 Annotations: %s
                 Imports: %s
                 Fields: %s
@@ -29,7 +30,8 @@ public class ContextRenderer {
                 snapshot.filePath(),
                 snapshot.packageName(),
                 snapshot.className(),
-                snapshot.classType(),
+                snapshot.classRole(),
+                snapshot.springStereotype(),
                 snapshot.annotations(),
                 snapshot.imports(),
                 snapshot.fields(),
@@ -53,7 +55,9 @@ public class ContextRenderer {
             sb.append("- ")
                     .append(related.relationType())
                     .append(" | ")
-                    .append(related.classType())
+                    .append(related.classRole())
+                    .append(" | ")
+                    .append(related.springStereotype())
                     .append(" | ")
                     .append(related.className())
                     .append(" | ")

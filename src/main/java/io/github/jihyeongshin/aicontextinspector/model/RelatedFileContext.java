@@ -4,7 +4,8 @@ import java.util.List;
 
 public record RelatedFileContext(
         String className,
-        String classType,
+        String classRole,
+        String springStereotype,
         String filePath,
         String packageName,
         String relationType,

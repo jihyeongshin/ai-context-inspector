@@ -4,6 +4,7 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiJavaFile;
+import io.github.jihyeongshin.aicontextinspector.model.ClassClassification;
 import io.github.jihyeongshin.aicontextinspector.model.RelatedFileContext;
 
 import java.util.ArrayList;
@@ -150,9 +151,9 @@ public class RelatedContextCollector {
         }
 
         String packageName = javaFile.getPackageName();
-        String classType = classRoleClassifier.classify(psiClass, packageName);
+        ClassClassification classification = classRoleClassifier.classify(psiClass, packageName);
 
-        if (shouldExcludeClassType(classType)) {
+        if (shouldExcludeClassType(classification.classRole())) {
             return null;
         }
 
@@ -161,7 +162,8 @@ public class RelatedContextCollector {
 
         return new RelatedFileContext(
                 className,
-                classType,
+                classification.classRole(),
+                classification.springStereotype(),
                 filePath,
                 packageName,
                 relationType,
