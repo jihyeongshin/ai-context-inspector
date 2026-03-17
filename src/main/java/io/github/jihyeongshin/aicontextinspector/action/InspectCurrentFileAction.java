@@ -12,6 +12,7 @@ import com.intellij.psi.PsiManager;
 import io.github.jihyeongshin.aicontextinspector.extractor.JavaContextExtractor;
 import io.github.jihyeongshin.aicontextinspector.model.ContextSnapshot;
 import io.github.jihyeongshin.aicontextinspector.render.ContextRenderer;
+import io.github.jihyeongshin.aicontextinspector.ui.ContextPreviewDialog;
 import org.jetbrains.annotations.NotNull;
 
 public class InspectCurrentFileAction extends AnAction {
@@ -48,7 +49,7 @@ public class InspectCurrentFileAction extends AnAction {
         ContextSnapshot snapshot = extractor.extract(project, javaFile, virtualFile);
         String message = renderer.render(snapshot);
 
-        Messages.showInfoMessage(project, message, "AI Context Inspector");
+        new ContextPreviewDialog(project, message).show();
 
     }
 
