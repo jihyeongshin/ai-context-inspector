@@ -123,6 +123,10 @@ public class RelatedContextCollector {
             return true;
         }
 
+        if (candidate.getContainingClass() != null) {
+            return true;
+        }
+
         String sourceQualifiedName = sourceClass.getQualifiedName();
         String candidateQualifiedName = candidate.getQualifiedName();
 
