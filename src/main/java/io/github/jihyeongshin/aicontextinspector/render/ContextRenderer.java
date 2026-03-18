@@ -2,6 +2,7 @@ package io.github.jihyeongshin.aicontextinspector.render;
 
 import io.github.jihyeongshin.aicontextinspector.model.ContextSnapshot;
 import io.github.jihyeongshin.aicontextinspector.model.RelatedFileContext;
+import io.github.jihyeongshin.aicontextinspector.model.RelatedFlow;
 
 import java.util.List;
 
@@ -41,7 +42,7 @@ public class ContextRenderer {
         );
     }
 
-    public String render(ContextSnapshot snapshot, List<RelatedFileContext> relatedFiles) {
+    public String render(ContextSnapshot snapshot, List<RelatedFileContext> relatedFiles, List<RelatedFlow> relatedFlows) {
         StringBuilder sb = new StringBuilder();
         sb.append(render(snapshot));
 
@@ -67,6 +68,19 @@ public class ContextRenderer {
                     .append(" | dependencies=")
                     .append(related.dependencies())
                     .append("\n");
+        }
+
+        sb.append("RelatedFlows:\n");
+        if (relatedFlows == null || relatedFlows.isEmpty()) {
+            sb.append("[]\n");
+        } else {
+            for (RelatedFlow flow : relatedFlows) {
+                sb.append("- ")
+                        .append(flow.toDisplayString())
+                        .append(" | score=")
+                        .append(flow.score())
+                        .append("\n");
+            }
         }
 
         return sb.toString();

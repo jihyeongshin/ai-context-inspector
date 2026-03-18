@@ -23,11 +23,10 @@ public class RelatedContextCollector {
 
     private final RelatedContextScorer relatedContextScorer = new RelatedContextScorer();
 
-    public List<RelatedFileContext> collect(Project project, PsiJavaFile javaFile) {
+    public List<RelatedFileContext> collect(Project project, PsiJavaFile javaFile, PsiClass sourceClass) {
         if (project == null || javaFile == null) {
             return List.of();
         }
-        PsiClass sourceClass = javaFile.getClasses().length > 0 ? javaFile.getClasses()[0] : null;
         if (sourceClass == null) {
             return List.of();
         }
