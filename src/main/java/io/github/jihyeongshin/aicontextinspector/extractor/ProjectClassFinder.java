@@ -44,7 +44,9 @@ public class ProjectClassFinder {
                 return candidate;
             }
         }
-
+        // TODO: candidates.getFirst() 개선
+        // 후보가 여러개일 경우 우선순위를 추가하여 점수가 높은 클래스를 반환해야 한다.
+        // same package(100) -> same module(50) -> package similarity(30) ->  shortest distance
         return candidates.isEmpty() ? null : candidates.getFirst();
     }
 }

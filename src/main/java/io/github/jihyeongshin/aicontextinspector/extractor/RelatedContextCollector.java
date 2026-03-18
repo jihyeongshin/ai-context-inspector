@@ -40,10 +40,10 @@ public class RelatedContextCollector {
         collectFromDependencies(project, sourceClass, sourceClassRole, sourcePackageName, visitedQualifiedNames, result);
         collectFromImports(project, javaFile, sourceClass, sourceClassRole, sourcePackageName, visitedQualifiedNames, result);
 
+        result.sort((a, b) -> Integer.compare(b.score(), a.score()));
         if (result.size() > MAX_RELATED_CLASSES) {
             return result.subList(0, MAX_RELATED_CLASSES);
         }
-        result.sort((a, b) -> Integer.compare(b.score(), a.score()));
         return result;
     }
 
@@ -160,7 +160,7 @@ public class RelatedContextCollector {
         String packageName = javaFile.getPackageName();
         ClassClassification classification = classRoleClassifier.classify(psiClass, packageName);
 
-        if (shouldExcludeClassType(classification.classRole())) {
+        if (shouldExcludeClassRole(classification.classRole())) {
             return null;
         }
 
@@ -194,7 +194,7 @@ public class RelatedContextCollector {
                 || importedName.startsWith("com.intellij."));
     }
 
-    private boolean shouldExcludeClassType(String classType) {
+    private boolean shouldExcludeClassRole(String classType) {
         return "Unknown".equals(classType)
                 || "Enum".equals(classType)
                 || "Test".equals(classType);
