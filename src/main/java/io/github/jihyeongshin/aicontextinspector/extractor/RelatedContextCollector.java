@@ -21,6 +21,8 @@ public class RelatedContextCollector {
     private final ClassRoleClassifier classRoleClassifier = new ClassRoleClassifier();
     private final ProjectClassFinder projectClassFinder = new ProjectClassFinder();
 
+    private final RelatedContextScorer relatedContextScorer = new RelatedContextScorer();
+
     public List<RelatedFileContext> collect(Project project, PsiJavaFile javaFile) {
         if (project == null || javaFile == null) {
             return List.of();
@@ -30,22 +32,25 @@ public class RelatedContextCollector {
             return List.of();
         }
         String sourcePackageName = javaFile.getPackageName();
+        String sourceClassRole = classRoleClassifier.classify(sourceClass, sourcePackageName).classRole();
 
         Set<String> visitedQualifiedNames = new LinkedHashSet<>();
         List<RelatedFileContext> result = new ArrayList<>();
 
-        collectFromDependencies(project, sourceClass, sourcePackageName, visitedQualifiedNames, result);
-        collectFromImports(project, javaFile, sourceClass, visitedQualifiedNames, result);
+        collectFromDependencies(project, sourceClass, sourceClassRole, sourcePackageName, visitedQualifiedNames, result);
+        collectFromImports(project, javaFile, sourceClass, sourceClassRole, sourcePackageName, visitedQualifiedNames, result);
 
         if (result.size() > MAX_RELATED_CLASSES) {
             return result.subList(0, MAX_RELATED_CLASSES);
         }
+        result.sort((a, b) -> Integer.compare(b.score(), a.score()));
         return result;
     }
 
     private void collectFromDependencies(
             Project project,
             PsiClass sourceClass,
+            String sourceClassRole,
             String sourcePackageName,
             Set<String> visitedQualifiedNames,
             List<RelatedFileContext> result
@@ -62,7 +67,7 @@ public class RelatedContextCollector {
                 continue;
             }
 
-            RelatedFileContext context = toRelatedFileContext(candidate, "FIELD_DEPENDENCY");
+            RelatedFileContext context = toRelatedFileContext(sourceClassRole, sourcePackageName, candidate, "FIELD_DEPENDENCY");
             if (context == null) {
                 continue;
             }
@@ -80,6 +85,8 @@ public class RelatedContextCollector {
             Project project,
             PsiJavaFile javaFile,
             PsiClass sourceClass,
+            String sourceClassRole,
+            String sourcePackageName,
             Set<String> visitedQualifiedNames,
             List<RelatedFileContext> result
     ) {
@@ -98,7 +105,7 @@ public class RelatedContextCollector {
                 continue;
             }
 
-            RelatedFileContext context = toRelatedFileContext(candidate, "PROJECT_IMPORT");
+            RelatedFileContext context = toRelatedFileContext(sourceClassRole, sourcePackageName, candidate, "PROJECT_IMPORT");
             if (context == null) {
                 continue;
             }
@@ -135,7 +142,7 @@ public class RelatedContextCollector {
         return false;
     }
 
-    private RelatedFileContext toRelatedFileContext(PsiClass psiClass, String relationType) {
+    private RelatedFileContext toRelatedFileContext(String sourceClassRole, String sourcePackageName, PsiClass psiClass, String relationType) {
         String className = psiClass.getName();
         String qualifiedName = psiClass.getQualifiedName();
 
@@ -160,6 +167,10 @@ public class RelatedContextCollector {
         VirtualFile virtualFile = javaFile.getVirtualFile();
         String filePath = virtualFile != null ? virtualFile.getPath() : "Unknown";
 
+        boolean isSamePackage = packageName.equals(sourcePackageName);
+
+        int score = relatedContextScorer.score(sourceClassRole, classification.classRole(), relationType, isSamePackage);
+
         return new RelatedFileContext(
                 className,
                 classification.classRole(),
@@ -167,7 +178,8 @@ public class RelatedContextCollector {
                 filePath,
                 packageName,
                 relationType,
-                dependencyExtractor.extract(psiClass)
+                dependencyExtractor.extract(psiClass),
+                score
         );
 
     }

@@ -9,6 +9,7 @@ public record RelatedFileContext(
         String filePath,
         String packageName,
         String relationType,
-        List<String> dependencies
+        List<String> dependencies,
+        int score
 ) {
 }
