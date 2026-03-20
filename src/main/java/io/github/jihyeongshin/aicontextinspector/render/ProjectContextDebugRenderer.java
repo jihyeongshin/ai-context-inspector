@@ -226,7 +226,7 @@ public class ProjectContextDebugRenderer {
                 )
                 .toList();
 
-        sb.append("Unknown Role Samples")
+        sb.append("Unclassified Role Samples")
                 .append(" (")
                 .append(unknownRoleFiles.size())
                 .append(")")
@@ -249,7 +249,7 @@ public class ProjectContextDebugRenderer {
     }
 
     private void appendUnknownAffinitySamples(StringBuilder sb, List<ContextSnapshot> files) {
-        sb.append("Unknown Affinity Samples").append("\n");
+        sb.append("Unclassified Affinity Samples").append("\n");
 
         List<String> unknowns = files.stream()
                 .filter(file ->
@@ -373,9 +373,9 @@ public class ProjectContextDebugRenderer {
     }
 
     private enum UnknownRoleGroup {
-        DATA_LIKE_OR_ENTITY_BACKED("Unknown Role - DataLike/EntityBacked"),
-        SUPPORT_LIKE("Unknown Role - SupportLike"),
-        TRULY_UNKNOWN("Unknown Role - Truly Unknown");
+        DATA_LIKE_OR_ENTITY_BACKED("Unclassified Roles - Data-like or Entity-backed"),
+        SUPPORT_LIKE("Unclassified Roles - Support-like"),
+        TRULY_UNKNOWN("Unclassified Roles - Other patterns");
 
         private final String title;
 
