@@ -1,11 +1,6 @@
 package io.github.jihyeongshin.aicontextinspector.extractor;
 
-import com.intellij.psi.PsiClass;
-import com.intellij.psi.PsiMethod;
-import com.intellij.psi.PsiParameter;
-import com.intellij.psi.PsiParameterList;
-import com.intellij.psi.PsiType;
-import com.intellij.psi.PsiTypeElement;
+import com.intellij.psi.*;
 
 import java.util.ArrayList;
 import java.util.Collections;

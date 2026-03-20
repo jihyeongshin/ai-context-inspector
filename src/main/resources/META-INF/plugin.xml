@@ -23,6 +23,16 @@
                     class="io.github.jihyeongshin.aicontextinspector.action.InspectCurrentFileAction"
                     text="Inspect Current File"
                     description="Inspect current file context"/>
+
+            <action id="AIContextInspector.PreviewProjectContext"
+                    class="io.github.jihyeongshin.aicontextinspector.action.PreviewProjectContextAction"
+                    text="Preview Project Context"
+                    description="Preview indexed project context"/>
+
+            <action id="AIContextInspector.GenerateProjectAiContext"
+                    class="io.github.jihyeongshin.aicontextinspector.action.GenerateProjectAiContextAction"
+                    text="Generate Project AI Context"
+                    description="Generate project AI context artifacts"/>
         </group>
     </actions>
 

@@ -1,10 +1,6 @@
 package io.github.jihyeongshin.aicontextinspector.extractor;
 
-import com.intellij.psi.PsiAnnotation;
-import com.intellij.psi.PsiAnnotationMemberValue;
-import com.intellij.psi.PsiArrayInitializerMemberValue;
-import com.intellij.psi.PsiClass;
-import com.intellij.psi.PsiMethod;
+import com.intellij.psi.*;
 import io.github.jihyeongshin.aicontextinspector.model.EndpointInfo;
 
 import java.util.ArrayList;
@@ -85,27 +81,27 @@ public class EndpointExtractor {
                 continue;
             }
 
-            if (qualifiedName.endsWith(".GetMapping")) {
+            if (qualifiedName.endsWith(".GetMapping") || qualifiedName.endsWith("GetMapping")) {
                 return new EndpointMapping("GET", extractPaths(annotation));
             }
 
-            if (qualifiedName.endsWith(".PostMapping")) {
+            if (qualifiedName.endsWith(".PostMapping") || qualifiedName.endsWith("PostMapping")) {
                 return new EndpointMapping("POST", extractPaths(annotation));
             }
 
-            if (qualifiedName.endsWith(".PutMapping")) {
+            if (qualifiedName.endsWith(".PutMapping") || qualifiedName.endsWith("PutMapping")) {
                 return new EndpointMapping("PUT", extractPaths(annotation));
             }
 
-            if (qualifiedName.endsWith(".DeleteMapping")) {
+            if (qualifiedName.endsWith(".DeleteMapping") || qualifiedName.endsWith("DeleteMapping")) {
                 return new EndpointMapping("DELETE", extractPaths(annotation));
             }
 
-            if (qualifiedName.endsWith(".PatchMapping")) {
+            if (qualifiedName.endsWith(".PatchMapping") || qualifiedName.endsWith("PatchMapping")) {
                 return new EndpointMapping("PATCH", extractPaths(annotation));
             }
 
-            if (qualifiedName.endsWith(".RequestMapping")) {
+            if (qualifiedName.endsWith(".RequestMapping") || qualifiedName.endsWith("RequestMapping")) {
                 String httpMethod = extractRequestMethod(annotation);
                 return new EndpointMapping(httpMethod, extractPaths(annotation));
             }
