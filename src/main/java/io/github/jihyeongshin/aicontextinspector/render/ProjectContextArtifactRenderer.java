@@ -551,9 +551,9 @@ public class ProjectContextArtifactRenderer {
         ProjectPolicyEvidence evidence = policySnapshot.evidence();
         return List.of(
                 "Overall policy posture: " + policySnapshot.overallPostureDisplayString(),
-                "Evidence base: " + evidence.representativeFlowCount() + " representative flows, "
-                        + evidence.ingestedRuleCount() + " ingested rules, "
-                        + evidence.distinctMultiPurposeEntryPoints() + " distinct multi-purpose entry points.",
+                "Evidence base: " + formatCount(evidence.representativeFlowCount(), "representative flow") + ", "
+                        + formatCount(evidence.ingestedRuleCount(), "ingested rule") + ", "
+                        + formatCount(evidence.distinctMultiPurposeEntryPoints(), "distinct multi-purpose entry point") + ".",
                 "Cautions: " + formatPolicyCautionSummary(policySnapshot)
         );
     }
@@ -581,16 +581,16 @@ public class ProjectContextArtifactRenderer {
             bullets.add("Project rule input is not available, so policy strength remains limited.");
         }
         if (policySnapshot.cautions().contains(ProjectPolicyCaution.AMBIGUITY_PRESENT)) {
-            bullets.add("Residual ambiguity remains in " + evidence.ambiguousFlowCount() + " representative flows.");
+            bullets.add("Residual ambiguity remains in " + formatCount(evidence.ambiguousFlowCount(), "representative flow") + ".");
         }
         if (policySnapshot.cautions().contains(ProjectPolicyCaution.HOTSPOT_PRESENT)) {
-            bullets.add("Legacy hotspot interpretation still affects " + evidence.hotspotFlowCount() + " representative flows.");
+            bullets.add("Legacy hotspot interpretation still affects " + formatCount(evidence.hotspotFlowCount(), "representative flow") + ".");
         }
         if (policySnapshot.cautions().contains(ProjectPolicyCaution.LOW_CONFIDENCE_PRESENT)) {
-            bullets.add("Low-confidence representative flows remain present in " + evidence.lowConfidenceFlowCount() + " cases.");
+            bullets.add("Low-confidence representative flows remain present in " + formatCount(evidence.lowConfidenceFlowCount(), "case") + ".");
         }
         if (policySnapshot.cautions().contains(ProjectPolicyCaution.UNKNOWN_AFFINITY_PRESENT)) {
-            bullets.add("Unknown affinity remains in " + evidence.unknownAffinityCount() + " indexed files.");
+            bullets.add("Unknown affinity remains in " + formatCount(evidence.unknownAffinityCount(), "indexed file") + ".");
         }
         bullets.add("Representative flows are architecture summaries, not runtime proofs.");
         return bullets;
@@ -604,16 +604,16 @@ public class ProjectContextArtifactRenderer {
             parts.add("rule input missing");
         }
         if (policySnapshot.cautions().contains(ProjectPolicyCaution.AMBIGUITY_PRESENT)) {
-            parts.add("ambiguity present in " + evidence.ambiguousFlowCount() + " flows");
+            parts.add("ambiguity present in " + formatCount(evidence.ambiguousFlowCount(), "flow"));
         }
         if (policySnapshot.cautions().contains(ProjectPolicyCaution.HOTSPOT_PRESENT)) {
-            parts.add("legacy hotspot present in " + evidence.hotspotFlowCount() + " flows");
+            parts.add("legacy hotspot present in " + formatCount(evidence.hotspotFlowCount(), "flow"));
         }
         if (policySnapshot.cautions().contains(ProjectPolicyCaution.LOW_CONFIDENCE_PRESENT)) {
-            parts.add("low confidence present in " + evidence.lowConfidenceFlowCount() + " flows");
+            parts.add("low confidence present in " + formatCount(evidence.lowConfidenceFlowCount(), "flow"));
         }
         if (policySnapshot.cautions().contains(ProjectPolicyCaution.UNKNOWN_AFFINITY_PRESENT)) {
-            parts.add("unknown affinity present in " + evidence.unknownAffinityCount() + " files");
+            parts.add("unknown affinity present in " + formatCount(evidence.unknownAffinityCount(), "file"));
         }
 
         return parts.isEmpty() ? "None" : String.join(", ", parts);
@@ -744,6 +744,10 @@ public class ProjectContextArtifactRenderer {
 
     private String formatAverage(double value) {
         return String.format(Locale.ROOT, "%.2f", value);
+    }
+
+    private String formatCount(long count, String singularNoun) {
+        return count + " " + (count == 1 ? singularNoun : singularNoun + "s");
     }
 
     private String formatPercentage(long value, long total) {

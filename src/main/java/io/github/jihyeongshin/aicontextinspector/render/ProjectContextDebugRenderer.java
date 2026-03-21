@@ -158,12 +158,11 @@ public class ProjectContextDebugRenderer {
                 .append(policySnapshot.overallPostureDisplayString())
                 .append("\n");
         sb.append("- Evidence base: ")
-                .append(policySnapshot.evidence().representativeFlowCount())
-                .append(" representative flows, ")
-                .append(policySnapshot.evidence().ingestedRuleCount())
-                .append(" ingested rules, ")
-                .append(policySnapshot.evidence().distinctMultiPurposeEntryPoints())
-                .append(" distinct multi-purpose entry points")
+                .append(formatCount(policySnapshot.evidence().representativeFlowCount(), "representative flow"))
+                .append(", ")
+                .append(formatCount(policySnapshot.evidence().ingestedRuleCount(), "ingested rule"))
+                .append(", ")
+                .append(formatCount(policySnapshot.evidence().distinctMultiPurposeEntryPoints(), "distinct multi-purpose entry point"))
                 .append("\n");
         sb.append("- Signal count by status: ")
                 .append(signalCounts.isEmpty() ? "None" : formatTopSummary(signalCounts))
@@ -610,19 +609,23 @@ public class ProjectContextDebugRenderer {
             parts.add("rule input missing");
         }
         if (policySnapshot.cautions().contains(ProjectPolicyCaution.AMBIGUITY_PRESENT)) {
-            parts.add("ambiguity present in " + evidence.ambiguousFlowCount() + " flows");
+            parts.add("ambiguity present in " + formatCount(evidence.ambiguousFlowCount(), "flow"));
         }
         if (policySnapshot.cautions().contains(ProjectPolicyCaution.HOTSPOT_PRESENT)) {
-            parts.add("legacy hotspot present in " + evidence.hotspotFlowCount() + " flows");
+            parts.add("legacy hotspot present in " + formatCount(evidence.hotspotFlowCount(), "flow"));
         }
         if (policySnapshot.cautions().contains(ProjectPolicyCaution.LOW_CONFIDENCE_PRESENT)) {
-            parts.add("low confidence present in " + evidence.lowConfidenceFlowCount() + " flows");
+            parts.add("low confidence present in " + formatCount(evidence.lowConfidenceFlowCount(), "flow"));
         }
         if (policySnapshot.cautions().contains(ProjectPolicyCaution.UNKNOWN_AFFINITY_PRESENT)) {
-            parts.add("unknown affinity present in " + evidence.unknownAffinityCount() + " files");
+            parts.add("unknown affinity present in " + formatCount(evidence.unknownAffinityCount(), "file"));
         }
 
         return parts.isEmpty() ? "None" : String.join(", ", parts);
+    }
+
+    private String formatCount(long count, String singularNoun) {
+        return count + " " + (count == 1 ? singularNoun : singularNoun + "s");
     }
 
     private enum UnknownRoleGroup {
