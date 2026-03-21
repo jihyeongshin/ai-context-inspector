@@ -2,7 +2,9 @@ package io.github.jihyeongshin.aicontextinspector.render;
 
 import io.github.jihyeongshin.aicontextinspector.model.*;
 import io.github.jihyeongshin.aicontextinspector.project.RepresentativeFlowBuilder;
+import io.github.jihyeongshin.aicontextinspector.project.RepresentativeFlowAmbiguityInterpreter;
 import io.github.jihyeongshin.aicontextinspector.project.RepresentativeFlowEntryPointInterpreter;
+import io.github.jihyeongshin.aicontextinspector.project.RepresentativeFlowLegacyHotspotInterpreter;
 import io.github.jihyeongshin.aicontextinspector.project.RepresentativeFlowMetadataEvaluator;
 
 import java.util.*;
@@ -14,8 +16,12 @@ public class ProjectContextDebugRenderer {
     private static final List<String> TARGETED_ENTRY_POINT_TOKENS = List.of("Root", "Chat", "User");
 
     private final RepresentativeFlowBuilder representativeFlowBuilder = new RepresentativeFlowBuilder();
+    private final RepresentativeFlowAmbiguityInterpreter representativeFlowAmbiguityInterpreter =
+            new RepresentativeFlowAmbiguityInterpreter();
     private final RepresentativeFlowEntryPointInterpreter representativeFlowEntryPointInterpreter =
             new RepresentativeFlowEntryPointInterpreter();
+    private final RepresentativeFlowLegacyHotspotInterpreter representativeFlowLegacyHotspotInterpreter =
+            new RepresentativeFlowLegacyHotspotInterpreter();
     private final RepresentativeFlowMetadataEvaluator representativeFlowMetadataEvaluator =
             new RepresentativeFlowMetadataEvaluator();
 
@@ -291,6 +297,10 @@ public class ProjectContextDebugRenderer {
                 representativeFlowMetadataEvaluator.evaluate(projectSnapshot, flows);
         Map<String, RepresentativeFlowEntryPointInterpretation> entryPointInterpretations =
                 representativeFlowEntryPointInterpreter.evaluate(projectSnapshot, flows);
+        Map<String, RepresentativeFlowAmbiguityInterpretation> ambiguityInterpretations =
+                representativeFlowAmbiguityInterpreter.evaluate(projectSnapshot, interpretedFlows);
+        Map<String, RepresentativeFlowLegacyHotspotInterpretation> legacyHotspotInterpretations =
+                representativeFlowLegacyHotspotInterpreter.evaluate(projectSnapshot, flows);
         List<InterpretedRepresentativeFlow> topFlows = interpretedFlows.stream()
                 .limit(REPRESENTATIVE_FLOW_LIMIT)
                 .toList();
@@ -300,6 +310,14 @@ public class ProjectContextDebugRenderer {
             RepresentativeFlowEntryPointInterpretation entryPointInterpretation = entryPointInterpretations.getOrDefault(
                     representativeFlowEntryPointInterpreter.entryPointIdentity(projectSnapshot, flow),
                     new RepresentativeFlowEntryPointInterpretation(null, List.of())
+            );
+            RepresentativeFlowLegacyHotspotInterpretation legacyHotspotInterpretation = legacyHotspotInterpretations.getOrDefault(
+                    flow.toDisplayString(),
+                    new RepresentativeFlowLegacyHotspotInterpretation(null, List.of())
+            );
+            RepresentativeFlowAmbiguityInterpretation ambiguityInterpretation = ambiguityInterpretations.getOrDefault(
+                    flow.toDisplayString(),
+                    new RepresentativeFlowAmbiguityInterpretation(null, List.of())
             );
             sb.append("- ")
                     .append(flow.toDisplayString())
@@ -311,12 +329,18 @@ public class ProjectContextDebugRenderer {
                     .append(interpretedFlow.metadata().confidence().displayName())
                     .append(" | ambiguity=")
                     .append(interpretedFlow.metadata().ambiguity().displayName())
+                    .append(" | ambiguity-notes=")
+                    .append(ambiguityInterpretation.notesDisplayString())
                     .append(" | notes=")
                     .append(interpretedFlow.metadata().notesDisplayString())
                     .append(" | entry-point=")
                     .append(entryPointInterpretation.interpretation().displayName())
                     .append(" | interpretation-notes=")
                     .append(entryPointInterpretation.notesDisplayString())
+                    .append(" | legacy-hotspot=")
+                    .append(legacyHotspotInterpretation.legacyHotspot().displayName())
+                    .append(" | hotspot-notes=")
+                    .append(legacyHotspotInterpretation.hotspotNotesDisplayString())
                     .append("\n");
         }
 
@@ -342,6 +366,8 @@ public class ProjectContextDebugRenderer {
                 representativeFlowMetadataEvaluator.evaluate(projectSnapshot, flows);
         Map<String, RepresentativeFlowEntryPointInterpretation> entryPointInterpretations =
                 representativeFlowEntryPointInterpreter.evaluate(projectSnapshot, flows);
+        Map<String, RepresentativeFlowAmbiguityInterpretation> ambiguityInterpretations =
+                representativeFlowAmbiguityInterpreter.evaluate(projectSnapshot, interpretedFlows);
 
         List<InterpretedRepresentativeFlow> targetedFlows = interpretedFlows.stream()
                 .filter(interpretedFlow -> matchesTargetedEntryPoint(interpretedFlow.flow()))
@@ -358,6 +384,10 @@ public class ProjectContextDebugRenderer {
                     representativeFlowEntryPointInterpreter.entryPointIdentity(projectSnapshot, flow),
                     new RepresentativeFlowEntryPointInterpretation(null, List.of())
             );
+            RepresentativeFlowAmbiguityInterpretation ambiguityInterpretation = ambiguityInterpretations.getOrDefault(
+                    flow.toDisplayString(),
+                    new RepresentativeFlowAmbiguityInterpretation(null, List.of())
+            );
             sb.append("- ")
                     .append(flow.toDisplayString())
                     .append(" | entry-point=")
@@ -368,6 +398,8 @@ public class ProjectContextDebugRenderer {
                     .append(interpretedFlow.metadata().confidence().displayName())
                     .append(" | ambiguity=")
                     .append(interpretedFlow.metadata().ambiguity().displayName())
+                    .append(" | ambiguity-notes=")
+                    .append(ambiguityInterpretation.notesDisplayString())
                     .append("\n");
         }
         sb.append("\n");

@@ -4,6 +4,12 @@ import io.github.jihyeongshin.aicontextinspector.model.ContextSnapshot;
 import io.github.jihyeongshin.aicontextinspector.model.InterpretedRepresentativeFlow;
 import io.github.jihyeongshin.aicontextinspector.model.ProjectContextSnapshot;
 import io.github.jihyeongshin.aicontextinspector.model.RepresentativeFlow;
+import io.github.jihyeongshin.aicontextinspector.model.RepresentativeFlowAmbiguityInterpretation;
+import io.github.jihyeongshin.aicontextinspector.model.RepresentativeFlowEntryPointInterpretation;
+import io.github.jihyeongshin.aicontextinspector.model.RepresentativeFlowLegacyHotspotInterpretation;
+import io.github.jihyeongshin.aicontextinspector.project.RepresentativeFlowAmbiguityInterpreter;
+import io.github.jihyeongshin.aicontextinspector.project.RepresentativeFlowEntryPointInterpreter;
+import io.github.jihyeongshin.aicontextinspector.project.RepresentativeFlowLegacyHotspotInterpreter;
 import io.github.jihyeongshin.aicontextinspector.project.RepresentativeFlowMetadataEvaluator;
 
 import java.time.ZonedDateTime;
@@ -28,6 +34,12 @@ public class ProjectContextArtifactRenderer {
 
     private final RepresentativeFlowMetadataEvaluator representativeFlowMetadataEvaluator =
             new RepresentativeFlowMetadataEvaluator();
+    private final RepresentativeFlowAmbiguityInterpreter representativeFlowAmbiguityInterpreter =
+            new RepresentativeFlowAmbiguityInterpreter();
+    private final RepresentativeFlowEntryPointInterpreter representativeFlowEntryPointInterpreter =
+            new RepresentativeFlowEntryPointInterpreter();
+    private final RepresentativeFlowLegacyHotspotInterpreter representativeFlowLegacyHotspotInterpreter =
+            new RepresentativeFlowLegacyHotspotInterpreter();
 
     public String renderProjectStructure(ProjectContextSnapshot snapshot) {
         List<ContextSnapshot> files = snapshot.files();
@@ -160,6 +172,24 @@ public class ProjectContextArtifactRenderer {
                         TreeMap::new,
                         Collectors.counting()
                 ));
+        Map<String, RepresentativeFlowAmbiguityInterpretation> ambiguityInterpretations =
+                representativeFlowAmbiguityInterpreter.evaluate(snapshot, interpretedFlows);
+        Map<String, RepresentativeFlowEntryPointInterpretation> entryPointInterpretations =
+                representativeFlowEntryPointInterpreter.evaluate(snapshot, flows);
+        Map<String, RepresentativeFlowLegacyHotspotInterpretation> legacyHotspotInterpretations =
+                representativeFlowLegacyHotspotInterpreter.evaluate(snapshot, flows);
+        Map<String, Long> entryPointInterpretationCounts = entryPointInterpretations.values().stream()
+                .collect(Collectors.groupingBy(
+                        interpretation -> interpretation.interpretation().displayName(),
+                        TreeMap::new,
+                        Collectors.counting()
+                ));
+        Map<String, Long> legacyHotspotCounts = legacyHotspotInterpretations.values().stream()
+                .collect(Collectors.groupingBy(
+                        interpretation -> interpretation.legacyHotspot().displayName(),
+                        TreeMap::new,
+                        Collectors.counting()
+                ));
         String dominantPattern = topPatterns.isEmpty()
                 ? "None"
                 : sortByCountDescending(topPatterns, 1).get(0).getKey();
@@ -197,7 +227,9 @@ public class ProjectContextArtifactRenderer {
                 "Dominant terminal role: " + dominantTerminalRole,
                 "Common role transitions: " + formatTopSummary(transitionCounts, TOP_TRANSITION_SUMMARY_LIMIT),
                 "Confidence profile: " + formatTopSummary(confidenceCounts, 3),
-                "Ambiguity profile: " + formatTopSummary(ambiguityCounts, 3)
+                "Ambiguity profile: " + formatTopSummary(ambiguityCounts, 3),
+                "Distinct entry point interpretation profile: " + formatTopSummary(entryPointInterpretationCounts, 3),
+                "Legacy hotspot profile: " + formatTopSummary(legacyHotspotCounts, 3)
         ));
 
         sb.append("## Pattern Distribution").append("\n");
@@ -210,13 +242,32 @@ public class ProjectContextArtifactRenderer {
         int index = 1;
         for (InterpretedRepresentativeFlow interpretedFlow : interpretedFlows) {
             RepresentativeFlow flow = interpretedFlow.flow();
+            RepresentativeFlowAmbiguityInterpretation ambiguityInterpretation = ambiguityInterpretations.getOrDefault(
+                    flow.toDisplayString(),
+                    new RepresentativeFlowAmbiguityInterpretation(null, List.of())
+            );
+            RepresentativeFlowEntryPointInterpretation entryPointInterpretation = entryPointInterpretations.getOrDefault(
+                    representativeFlowEntryPointInterpreter.entryPointIdentity(snapshot, flow),
+                    new RepresentativeFlowEntryPointInterpretation(null, List.of())
+            );
+            RepresentativeFlowLegacyHotspotInterpretation legacyHotspotInterpretation = legacyHotspotInterpretations.getOrDefault(
+                    flow.toDisplayString(),
+                    new RepresentativeFlowLegacyHotspotInterpretation(null, List.of())
+            );
             sb.append("### ").append(index++).append(". ").append(flow.toDisplayString()).append("\n");
             sb.append("- Roles: ").append(flow.toRoleDisplayString()).append("\n");
             sb.append("- Flow length: ").append(flow.classNames().size()).append("\n");
             sb.append("- Score: ").append(flow.score()).append("\n");
             sb.append("- Confidence: ").append(interpretedFlow.metadata().confidence().displayName()).append("\n");
             sb.append("- Ambiguity: ").append(interpretedFlow.metadata().ambiguity().displayName()).append("\n");
-            sb.append("- Notes: ").append(interpretedFlow.metadata().notesDisplayString()).append("\n\n");
+            sb.append("- Ambiguity notes: ").append(ambiguityInterpretation.notesDisplayString()).append("\n");
+            sb.append("- Notes: ").append(interpretedFlow.metadata().notesDisplayString()).append("\n");
+            sb.append("- Entry point interpretation: ")
+                    .append(entryPointInterpretation.interpretation().displayName())
+                    .append("\n");
+            sb.append("- Entry point notes: ").append(entryPointInterpretation.notesDisplayString()).append("\n");
+            sb.append("- Legacy hotspot: ").append(legacyHotspotInterpretation.legacyHotspot().displayName()).append("\n");
+            sb.append("- Hotspot notes: ").append(legacyHotspotInterpretation.hotspotNotesDisplayString()).append("\n\n");
         }
 
         return sb.toString();
