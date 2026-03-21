@@ -1,9 +1,9 @@
 package io.github.jihyeongshin.aicontextinspector.render;
 
-import io.github.jihyeongshin.aicontextinspector.model.ContextSnapshot;
-import io.github.jihyeongshin.aicontextinspector.model.ProjectContextSnapshot;
-import io.github.jihyeongshin.aicontextinspector.model.RepresentativeFlow;
+import io.github.jihyeongshin.aicontextinspector.model.*;
 import io.github.jihyeongshin.aicontextinspector.project.RepresentativeFlowBuilder;
+import io.github.jihyeongshin.aicontextinspector.project.RepresentativeFlowEntryPointInterpreter;
+import io.github.jihyeongshin.aicontextinspector.project.RepresentativeFlowMetadataEvaluator;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -11,8 +11,13 @@ import java.util.stream.Collectors;
 public class ProjectContextDebugRenderer {
     private static final int UNKNOWN_ROLE_SAMPLE_LIMIT_PER_GROUP = 20;
     private static final int REPRESENTATIVE_FLOW_LIMIT = 20;
+    private static final List<String> TARGETED_ENTRY_POINT_TOKENS = List.of("Root", "Chat", "User");
 
     private final RepresentativeFlowBuilder representativeFlowBuilder = new RepresentativeFlowBuilder();
+    private final RepresentativeFlowEntryPointInterpreter representativeFlowEntryPointInterpreter =
+            new RepresentativeFlowEntryPointInterpreter();
+    private final RepresentativeFlowMetadataEvaluator representativeFlowMetadataEvaluator =
+            new RepresentativeFlowMetadataEvaluator();
 
     public String render(ProjectContextSnapshot projectSnapshot) {
         List<ContextSnapshot> files = projectSnapshot.files();
@@ -30,6 +35,7 @@ public class ProjectContextDebugRenderer {
         appendTraitCounts(sb, files);
         appendTraitSamples(sb, files);
         appendRepresentativeFlows(sb, projectSnapshot);
+        appendTargetedEntryPointInterpretationChecks(sb, projectSnapshot);
         appendUnknownRoleSamples(sb, files);
         appendUnknownAffinitySamples(sb, files);
 
@@ -281,27 +287,112 @@ public class ProjectContextDebugRenderer {
             return;
         }
 
-        List<RepresentativeFlow> topFlows = flows.stream()
+        List<InterpretedRepresentativeFlow> interpretedFlows =
+                representativeFlowMetadataEvaluator.evaluate(projectSnapshot, flows);
+        Map<String, RepresentativeFlowEntryPointInterpretation> entryPointInterpretations =
+                representativeFlowEntryPointInterpreter.evaluate(projectSnapshot, flows);
+        List<InterpretedRepresentativeFlow> topFlows = interpretedFlows.stream()
                 .limit(REPRESENTATIVE_FLOW_LIMIT)
                 .toList();
 
-        for (RepresentativeFlow flow : topFlows) {
+        for (InterpretedRepresentativeFlow interpretedFlow : topFlows) {
+            RepresentativeFlow flow = interpretedFlow.flow();
+            RepresentativeFlowEntryPointInterpretation entryPointInterpretation = entryPointInterpretations.getOrDefault(
+                    representativeFlowEntryPointInterpreter.entryPointIdentity(projectSnapshot, flow),
+                    new RepresentativeFlowEntryPointInterpretation(null, List.of())
+            );
             sb.append("- ")
                     .append(flow.toDisplayString())
                     .append(" | roles=")
                     .append(flow.toRoleDisplayString())
                     .append(" | score=")
                     .append(flow.score())
+                    .append(" | confidence=")
+                    .append(interpretedFlow.metadata().confidence().displayName())
+                    .append(" | ambiguity=")
+                    .append(interpretedFlow.metadata().ambiguity().displayName())
+                    .append(" | notes=")
+                    .append(interpretedFlow.metadata().notesDisplayString())
+                    .append(" | entry-point=")
+                    .append(entryPointInterpretation.interpretation().displayName())
+                    .append(" | interpretation-notes=")
+                    .append(entryPointInterpretation.notesDisplayString())
                     .append("\n");
         }
 
-        if (flows.size() > topFlows.size()) {
+        if (interpretedFlows.size() > topFlows.size()) {
             sb.append("- ... and ")
-                    .append(flows.size() - topFlows.size())
+                    .append(interpretedFlows.size() - topFlows.size())
                     .append(" more")
                     .append("\n");
         }
         sb.append("\n");
+    }
+
+    private void appendTargetedEntryPointInterpretationChecks(StringBuilder sb, ProjectContextSnapshot projectSnapshot) {
+        sb.append("Targeted Entry Point Interpretation Checks").append("\n");
+
+        List<RepresentativeFlow> flows = representativeFlowBuilder.build(projectSnapshot);
+        if (flows.isEmpty()) {
+            sb.append("- None").append("\n\n");
+            return;
+        }
+
+        List<InterpretedRepresentativeFlow> interpretedFlows =
+                representativeFlowMetadataEvaluator.evaluate(projectSnapshot, flows);
+        Map<String, RepresentativeFlowEntryPointInterpretation> entryPointInterpretations =
+                representativeFlowEntryPointInterpreter.evaluate(projectSnapshot, flows);
+
+        List<InterpretedRepresentativeFlow> targetedFlows = interpretedFlows.stream()
+                .filter(interpretedFlow -> matchesTargetedEntryPoint(interpretedFlow.flow()))
+                .toList();
+
+        if (targetedFlows.isEmpty()) {
+            sb.append("- None").append("\n\n");
+            return;
+        }
+
+        for (InterpretedRepresentativeFlow interpretedFlow : targetedFlows) {
+            RepresentativeFlow flow = interpretedFlow.flow();
+            RepresentativeFlowEntryPointInterpretation entryPointInterpretation = entryPointInterpretations.getOrDefault(
+                    representativeFlowEntryPointInterpreter.entryPointIdentity(projectSnapshot, flow),
+                    new RepresentativeFlowEntryPointInterpretation(null, List.of())
+            );
+            sb.append("- ")
+                    .append(flow.toDisplayString())
+                    .append(" | entry-point=")
+                    .append(entryPointInterpretation.interpretation().displayName())
+                    .append(" | interpretation-notes=")
+                    .append(entryPointInterpretation.notesDisplayString())
+                    .append(" | confidence=")
+                    .append(interpretedFlow.metadata().confidence().displayName())
+                    .append(" | ambiguity=")
+                    .append(interpretedFlow.metadata().ambiguity().displayName())
+                    .append("\n");
+        }
+        sb.append("\n");
+    }
+
+    private boolean matchesTargetedEntryPoint(RepresentativeFlow flow) {
+        String startClassName = startClassKey(flow);
+        if ("Unknown".equals(startClassName)) {
+            return false;
+        }
+
+        for (String token : TARGETED_ENTRY_POINT_TOKENS) {
+            if (startClassName.contains(token)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private String startClassKey(RepresentativeFlow flow) {
+        List<String> classNames = safeList(flow.classNames());
+        if (classNames.isEmpty()) {
+            return "Unknown";
+        }
+        return normalize(classNames.get(0));
     }
 
     private List<String> safeList(List<String> values) {

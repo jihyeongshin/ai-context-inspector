@@ -1,8 +1,10 @@
 package io.github.jihyeongshin.aicontextinspector.render;
 
 import io.github.jihyeongshin.aicontextinspector.model.ContextSnapshot;
+import io.github.jihyeongshin.aicontextinspector.model.InterpretedRepresentativeFlow;
 import io.github.jihyeongshin.aicontextinspector.model.ProjectContextSnapshot;
 import io.github.jihyeongshin.aicontextinspector.model.RepresentativeFlow;
+import io.github.jihyeongshin.aicontextinspector.project.RepresentativeFlowMetadataEvaluator;
 
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
@@ -23,6 +25,9 @@ public class ProjectContextArtifactRenderer {
     private static final int TOP_TRANSITION_SUMMARY_LIMIT = 3;
     private static final int TOP_TERMINAL_ROLE_LIMIT = 5;
     private static final int UNKNOWN_SAMPLE_LIMIT = 20;
+
+    private final RepresentativeFlowMetadataEvaluator representativeFlowMetadataEvaluator =
+            new RepresentativeFlowMetadataEvaluator();
 
     public String renderProjectStructure(ProjectContextSnapshot snapshot) {
         List<ContextSnapshot> files = snapshot.files();
@@ -133,6 +138,8 @@ public class ProjectContextArtifactRenderer {
     public String renderRepresentativeFlows(ProjectContextSnapshot snapshot, List<RepresentativeFlow> flows) {
         StringBuilder sb = new StringBuilder();
         sb.append("# Representative Flows").append("\n\n");
+        List<InterpretedRepresentativeFlow> interpretedFlows =
+                representativeFlowMetadataEvaluator.evaluate(snapshot, flows);
         Map<String, Long> topPatterns = flows.stream()
                 .collect(Collectors.groupingBy(
                         RepresentativeFlow::toRoleDisplayString,
@@ -141,6 +148,18 @@ public class ProjectContextArtifactRenderer {
                 ));
         Map<String, Long> terminalRoleCounts = countTerminalRoles(flows);
         Map<String, Long> transitionCounts = countRoleTransitions(flows);
+        Map<String, Long> confidenceCounts = interpretedFlows.stream()
+                .collect(Collectors.groupingBy(
+                        flow -> flow.metadata().confidence().displayName(),
+                        TreeMap::new,
+                        Collectors.counting()
+                ));
+        Map<String, Long> ambiguityCounts = interpretedFlows.stream()
+                .collect(Collectors.groupingBy(
+                        flow -> flow.metadata().ambiguity().displayName(),
+                        TreeMap::new,
+                        Collectors.counting()
+                ));
         String dominantPattern = topPatterns.isEmpty()
                 ? "None"
                 : sortByCountDescending(topPatterns, 1).get(0).getKey();
@@ -176,7 +195,9 @@ public class ProjectContextArtifactRenderer {
                 "Dominant role pattern: " + dominantPattern,
                 "Highest scoring flow: " + highestScoringFlow,
                 "Dominant terminal role: " + dominantTerminalRole,
-                "Common role transitions: " + formatTopSummary(transitionCounts, TOP_TRANSITION_SUMMARY_LIMIT)
+                "Common role transitions: " + formatTopSummary(transitionCounts, TOP_TRANSITION_SUMMARY_LIMIT),
+                "Confidence profile: " + formatTopSummary(confidenceCounts, 3),
+                "Ambiguity profile: " + formatTopSummary(ambiguityCounts, 3)
         ));
 
         sb.append("## Pattern Distribution").append("\n");
@@ -187,11 +208,15 @@ public class ProjectContextArtifactRenderer {
 
         sb.append("## Flow Catalog").append("\n\n");
         int index = 1;
-        for (RepresentativeFlow flow : flows) {
+        for (InterpretedRepresentativeFlow interpretedFlow : interpretedFlows) {
+            RepresentativeFlow flow = interpretedFlow.flow();
             sb.append("### ").append(index++).append(". ").append(flow.toDisplayString()).append("\n");
             sb.append("- Roles: ").append(flow.toRoleDisplayString()).append("\n");
             sb.append("- Flow length: ").append(flow.classNames().size()).append("\n");
-            sb.append("- Score: ").append(flow.score()).append("\n\n");
+            sb.append("- Score: ").append(flow.score()).append("\n");
+            sb.append("- Confidence: ").append(interpretedFlow.metadata().confidence().displayName()).append("\n");
+            sb.append("- Ambiguity: ").append(interpretedFlow.metadata().ambiguity().displayName()).append("\n");
+            sb.append("- Notes: ").append(interpretedFlow.metadata().notesDisplayString()).append("\n\n");
         }
 
         return sb.toString();
