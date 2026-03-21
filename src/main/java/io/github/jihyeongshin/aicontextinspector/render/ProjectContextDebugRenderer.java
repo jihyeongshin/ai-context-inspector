@@ -6,6 +6,8 @@ import io.github.jihyeongshin.aicontextinspector.project.RepresentativeFlowAmbig
 import io.github.jihyeongshin.aicontextinspector.project.RepresentativeFlowEntryPointInterpreter;
 import io.github.jihyeongshin.aicontextinspector.project.RepresentativeFlowLegacyHotspotInterpreter;
 import io.github.jihyeongshin.aicontextinspector.project.RepresentativeFlowMetadataEvaluator;
+import io.github.jihyeongshin.aicontextinspector.project.ProjectPolicyEvaluator;
+import io.github.jihyeongshin.aicontextinspector.project.ProjectRuleEvaluator;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -24,6 +26,8 @@ public class ProjectContextDebugRenderer {
             new RepresentativeFlowLegacyHotspotInterpreter();
     private final RepresentativeFlowMetadataEvaluator representativeFlowMetadataEvaluator =
             new RepresentativeFlowMetadataEvaluator();
+    private final ProjectRuleEvaluator projectRuleEvaluator = new ProjectRuleEvaluator();
+    private final ProjectPolicyEvaluator projectPolicyEvaluator = new ProjectPolicyEvaluator();
 
     public String render(ProjectContextSnapshot projectSnapshot) {
         List<ContextSnapshot> files = projectSnapshot.files();
@@ -40,6 +44,9 @@ public class ProjectContextDebugRenderer {
         appendAffinitySamples(sb, files);
         appendTraitCounts(sb, files);
         appendTraitSamples(sb, files);
+        appendProjectRuleInput(sb, projectSnapshot);
+        appendProjectRuleSignals(sb, projectSnapshot);
+        appendProjectPolicySummary(sb, projectSnapshot);
         appendRepresentativeFlows(sb, projectSnapshot);
         appendTargetedEntryPointInterpretationChecks(sb, projectSnapshot);
         appendUnknownRoleSamples(sb, files);
@@ -76,6 +83,94 @@ public class ProjectContextDebugRenderer {
                     .append("\n");
         }
         sb.append("\n");
+    }
+
+    private void appendProjectRuleInput(StringBuilder sb, ProjectContextSnapshot projectSnapshot) {
+        sb.append("Project Rule Input").append("\n");
+        sb.append("- Rule file detected: ")
+                .append(projectSnapshot.ruleFileDetected() ? "Yes" : "No")
+                .append("\n");
+        sb.append("- Rule source: ")
+                .append(normalize(projectSnapshot.ruleSourcePath()))
+                .append("\n");
+        sb.append("- Rules loaded: ")
+                .append(projectSnapshot.rulesLoadedCount())
+                .append("\n");
+        sb.append("- Load warnings: ")
+                .append(projectSnapshot.ruleLoadWarnings().size())
+                .append("\n");
+        sb.append("- Supported rule kinds: ")
+                .append(projectSnapshot.supportedRuleKindsSummary().isEmpty()
+                        ? "None"
+                        : String.join(", ", projectSnapshot.supportedRuleKindsSummary()))
+                .append("\n\n");
+    }
+
+    private void appendProjectRuleSignals(StringBuilder sb, ProjectContextSnapshot projectSnapshot) {
+        sb.append("Project Rule Signals").append("\n");
+
+        boolean hasSignals = false;
+        for (String warning : projectSnapshot.ruleLoadWarnings()) {
+            sb.append("- Load warning: ").append(warning).append("\n");
+            hasSignals = true;
+        }
+
+        if (!projectSnapshot.hasProjectRules()) {
+            if (!hasSignals) {
+                sb.append("- No project rules loaded").append("\n\n");
+                return;
+            }
+            sb.append("\n");
+            return;
+        }
+
+        List<ProjectRuleSignal> signals = projectRuleEvaluator.evaluate(
+                projectSnapshot,
+                representativeFlowBuilder.build(projectSnapshot)
+        );
+        if (signals.isEmpty()) {
+            if (!hasSignals) {
+                sb.append("- No rule signals available").append("\n\n");
+                return;
+            }
+            sb.append("\n");
+            return;
+        }
+
+        for (ProjectRuleSignal signal : signals) {
+            sb.append("- ")
+                    .append(signal.ruleId())
+                    .append(": ")
+                    .append(signal.summary())
+                    .append("\n");
+        }
+        sb.append("\n");
+    }
+
+    private void appendProjectPolicySummary(StringBuilder sb, ProjectContextSnapshot projectSnapshot) {
+        sb.append("Project Policy Summary").append("\n");
+
+        List<RepresentativeFlow> flows = representativeFlowBuilder.build(projectSnapshot);
+        ProjectPolicySnapshot policySnapshot = projectPolicyEvaluator.evaluate(projectSnapshot, flows);
+        Map<String, Long> signalCounts = projectPolicyEvaluator.countSignalsByStatus(policySnapshot);
+
+        sb.append("- Overall policy posture: ")
+                .append(policySnapshot.overallPostureDisplayString())
+                .append("\n");
+        sb.append("- Evidence base: ")
+                .append(policySnapshot.evidence().representativeFlowCount())
+                .append(" representative flows, ")
+                .append(policySnapshot.evidence().ingestedRuleCount())
+                .append(" ingested rules, ")
+                .append(policySnapshot.evidence().distinctMultiPurposeEntryPoints())
+                .append(" distinct multi-purpose entry points")
+                .append("\n");
+        sb.append("- Signal count by status: ")
+                .append(signalCounts.isEmpty() ? "None" : formatTopSummary(signalCounts))
+                .append("\n");
+        sb.append("- Caution summary: ")
+                .append(formatPolicyCautionSummary(policySnapshot))
+                .append("\n\n");
     }
 
     private void appendTopDependencyFiles(StringBuilder sb, List<ContextSnapshot> files) {
@@ -493,6 +588,41 @@ public class ProjectContextDebugRenderer {
 
     private String normalize(String value) {
         return value == null || value.isBlank() ? "Unknown" : value;
+    }
+
+    private String formatTopSummary(Map<String, Long> counts) {
+        if (counts.isEmpty()) {
+            return "None";
+        }
+
+        return counts.entrySet().stream()
+                .sorted(Map.Entry.<String, Long>comparingByValue().reversed()
+                        .thenComparing(Map.Entry.comparingByKey()))
+                .map(entry -> entry.getKey() + " (" + entry.getValue() + ")")
+                .collect(Collectors.joining(", "));
+    }
+
+    private String formatPolicyCautionSummary(ProjectPolicySnapshot policySnapshot) {
+        List<String> parts = new ArrayList<>();
+        ProjectPolicyEvidence evidence = policySnapshot.evidence();
+
+        if (policySnapshot.cautions().contains(ProjectPolicyCaution.RULE_INPUT_MISSING)) {
+            parts.add("rule input missing");
+        }
+        if (policySnapshot.cautions().contains(ProjectPolicyCaution.AMBIGUITY_PRESENT)) {
+            parts.add("ambiguity present in " + evidence.ambiguousFlowCount() + " flows");
+        }
+        if (policySnapshot.cautions().contains(ProjectPolicyCaution.HOTSPOT_PRESENT)) {
+            parts.add("legacy hotspot present in " + evidence.hotspotFlowCount() + " flows");
+        }
+        if (policySnapshot.cautions().contains(ProjectPolicyCaution.LOW_CONFIDENCE_PRESENT)) {
+            parts.add("low confidence present in " + evidence.lowConfidenceFlowCount() + " flows");
+        }
+        if (policySnapshot.cautions().contains(ProjectPolicyCaution.UNKNOWN_AFFINITY_PRESENT)) {
+            parts.add("unknown affinity present in " + evidence.unknownAffinityCount() + " files");
+        }
+
+        return parts.isEmpty() ? "None" : String.join(", ", parts);
     }
 
     private enum UnknownRoleGroup {

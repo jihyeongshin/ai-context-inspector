@@ -3,10 +3,17 @@ package io.github.jihyeongshin.aicontextinspector.render;
 import io.github.jihyeongshin.aicontextinspector.model.ContextSnapshot;
 import io.github.jihyeongshin.aicontextinspector.model.InterpretedRepresentativeFlow;
 import io.github.jihyeongshin.aicontextinspector.model.ProjectContextSnapshot;
+import io.github.jihyeongshin.aicontextinspector.model.ProjectPolicyCaution;
+import io.github.jihyeongshin.aicontextinspector.model.ProjectPolicyEvidence;
+import io.github.jihyeongshin.aicontextinspector.model.ProjectPolicySignal;
+import io.github.jihyeongshin.aicontextinspector.model.ProjectPolicySnapshot;
+import io.github.jihyeongshin.aicontextinspector.model.ProjectRuleSignal;
 import io.github.jihyeongshin.aicontextinspector.model.RepresentativeFlow;
 import io.github.jihyeongshin.aicontextinspector.model.RepresentativeFlowAmbiguityInterpretation;
 import io.github.jihyeongshin.aicontextinspector.model.RepresentativeFlowEntryPointInterpretation;
 import io.github.jihyeongshin.aicontextinspector.model.RepresentativeFlowLegacyHotspotInterpretation;
+import io.github.jihyeongshin.aicontextinspector.project.ProjectRuleEvaluator;
+import io.github.jihyeongshin.aicontextinspector.project.ProjectPolicyEvaluator;
 import io.github.jihyeongshin.aicontextinspector.project.RepresentativeFlowAmbiguityInterpreter;
 import io.github.jihyeongshin.aicontextinspector.project.RepresentativeFlowEntryPointInterpreter;
 import io.github.jihyeongshin.aicontextinspector.project.RepresentativeFlowLegacyHotspotInterpreter;
@@ -40,6 +47,8 @@ public class ProjectContextArtifactRenderer {
             new RepresentativeFlowEntryPointInterpreter();
     private final RepresentativeFlowLegacyHotspotInterpreter representativeFlowLegacyHotspotInterpreter =
             new RepresentativeFlowLegacyHotspotInterpreter();
+    private final ProjectRuleEvaluator projectRuleEvaluator = new ProjectRuleEvaluator();
+    private final ProjectPolicyEvaluator projectPolicyEvaluator = new ProjectPolicyEvaluator();
 
     public String renderProjectStructure(ProjectContextSnapshot snapshot) {
         List<ContextSnapshot> files = snapshot.files();
@@ -277,6 +286,7 @@ public class ProjectContextArtifactRenderer {
         List<ContextSnapshot> files = snapshot.files();
         StringBuilder sb = new StringBuilder();
         sb.append("# Architecture Rules").append("\n\n");
+        ProjectPolicySnapshot policySnapshot = projectPolicyEvaluator.evaluate(snapshot, flows);
         Map<String, Long> patterns = flows.stream()
                 .collect(Collectors.groupingBy(
                         RepresentativeFlow::toRoleDisplayString,
@@ -310,6 +320,12 @@ public class ProjectContextArtifactRenderer {
                 "Dominant representative pattern: " + dominantPatternSummary + ".",
                 "Dominant terminal role: " + dominantTerminalRoleSummary + "."
         ));
+
+        appendBulletSection(sb, "Project Rule Input", buildProjectRuleInputBullets(snapshot));
+        appendBulletSection(sb, "Project Rule Signals", buildProjectRuleSignalBullets(snapshot, flows));
+        appendBulletSection(sb, "Policy Layer Summary", buildPolicyLayerSummaryBullets(policySnapshot));
+        appendBulletSection(sb, "Policy Signals", buildPolicySignalBullets(policySnapshot));
+        appendBulletSection(sb, "Policy Cautions", buildPolicyCautionBullets(policySnapshot));
 
         sb.append("## Representative Flow Policy").append("\n");
         sb.append("- Main representative flows prefer EntryPointLike to ApplicationLike transitions.").append("\n");
@@ -488,6 +504,151 @@ public class ProjectContextArtifactRenderer {
                     .append(entry.getValue())
                     .append("\n");
         }
+    }
+
+    private List<String> buildProjectRuleInputBullets(ProjectContextSnapshot snapshot) {
+        return List.of(
+                "Rule file detected: " + (snapshot.ruleFileDetected() ? "Yes" : "No"),
+                "Rule source: " + normalize(snapshot.ruleSourcePath()),
+                "Rules loaded: " + snapshot.rulesLoadedCount(),
+                "Load warnings: " + snapshot.ruleLoadWarnings().size(),
+                "Supported rule kinds: " + (snapshot.supportedRuleKindsSummary().isEmpty()
+                        ? "None"
+                        : String.join(", ", snapshot.supportedRuleKindsSummary()))
+        );
+    }
+
+    private List<String> buildProjectRuleSignalBullets(
+            ProjectContextSnapshot snapshot,
+            List<RepresentativeFlow> flows
+    ) {
+        List<String> bullets = new ArrayList<>(snapshot.ruleLoadWarnings().stream()
+                .map(warning -> "Load warning: " + warning)
+                .toList());
+
+        if (!snapshot.hasProjectRules()) {
+            if (bullets.isEmpty()) {
+                bullets.add("No project rules loaded.");
+            }
+            return bullets;
+        }
+
+        List<ProjectRuleSignal> signals = projectRuleEvaluator.evaluate(snapshot, flows);
+        if (signals.isEmpty()) {
+            if (bullets.isEmpty()) {
+                bullets.add("No project rule signals available.");
+            }
+            return bullets;
+        }
+
+        signals.stream()
+                .map(signal -> signal.ruleId() + ": " + signal.summary())
+                .forEach(bullets::add);
+        return bullets;
+    }
+
+    private List<String> buildPolicyLayerSummaryBullets(ProjectPolicySnapshot policySnapshot) {
+        ProjectPolicyEvidence evidence = policySnapshot.evidence();
+        return List.of(
+                "Overall policy posture: " + policySnapshot.overallPostureDisplayString(),
+                "Evidence base: " + evidence.representativeFlowCount() + " representative flows, "
+                        + evidence.ingestedRuleCount() + " ingested rules, "
+                        + evidence.distinctMultiPurposeEntryPoints() + " distinct multi-purpose entry points.",
+                "Cautions: " + formatPolicyCautionSummary(policySnapshot)
+        );
+    }
+
+    private List<String> buildPolicySignalBullets(ProjectPolicySnapshot policySnapshot) {
+        List<String> bullets = new ArrayList<>(policySnapshot.signals().stream()
+                .map(ProjectPolicySignal::summary)
+                .toList());
+
+        String softeningSummary = buildPolicySofteningSummary(policySnapshot);
+        if (!softeningSummary.isBlank()) {
+            bullets.add(softeningSummary);
+        }
+
+        return bullets.isEmpty()
+                ? List.of("No policy signals are currently available.")
+                : bullets;
+    }
+
+    private List<String> buildPolicyCautionBullets(ProjectPolicySnapshot policySnapshot) {
+        List<String> bullets = new ArrayList<>();
+        ProjectPolicyEvidence evidence = policySnapshot.evidence();
+
+        if (policySnapshot.cautions().contains(ProjectPolicyCaution.RULE_INPUT_MISSING)) {
+            bullets.add("Project rule input is not available, so policy strength remains limited.");
+        }
+        if (policySnapshot.cautions().contains(ProjectPolicyCaution.AMBIGUITY_PRESENT)) {
+            bullets.add("Residual ambiguity remains in " + evidence.ambiguousFlowCount() + " representative flows.");
+        }
+        if (policySnapshot.cautions().contains(ProjectPolicyCaution.HOTSPOT_PRESENT)) {
+            bullets.add("Legacy hotspot interpretation still affects " + evidence.hotspotFlowCount() + " representative flows.");
+        }
+        if (policySnapshot.cautions().contains(ProjectPolicyCaution.LOW_CONFIDENCE_PRESENT)) {
+            bullets.add("Low-confidence representative flows remain present in " + evidence.lowConfidenceFlowCount() + " cases.");
+        }
+        if (policySnapshot.cautions().contains(ProjectPolicyCaution.UNKNOWN_AFFINITY_PRESENT)) {
+            bullets.add("Unknown affinity remains in " + evidence.unknownAffinityCount() + " indexed files.");
+        }
+        bullets.add("Representative flows are architecture summaries, not runtime proofs.");
+        return bullets;
+    }
+
+    private String formatPolicyCautionSummary(ProjectPolicySnapshot policySnapshot) {
+        List<String> parts = new ArrayList<>();
+        ProjectPolicyEvidence evidence = policySnapshot.evidence();
+
+        if (policySnapshot.cautions().contains(ProjectPolicyCaution.RULE_INPUT_MISSING)) {
+            parts.add("rule input missing");
+        }
+        if (policySnapshot.cautions().contains(ProjectPolicyCaution.AMBIGUITY_PRESENT)) {
+            parts.add("ambiguity present in " + evidence.ambiguousFlowCount() + " flows");
+        }
+        if (policySnapshot.cautions().contains(ProjectPolicyCaution.HOTSPOT_PRESENT)) {
+            parts.add("legacy hotspot present in " + evidence.hotspotFlowCount() + " flows");
+        }
+        if (policySnapshot.cautions().contains(ProjectPolicyCaution.LOW_CONFIDENCE_PRESENT)) {
+            parts.add("low confidence present in " + evidence.lowConfidenceFlowCount() + " flows");
+        }
+        if (policySnapshot.cautions().contains(ProjectPolicyCaution.UNKNOWN_AFFINITY_PRESENT)) {
+            parts.add("unknown affinity present in " + evidence.unknownAffinityCount() + " files");
+        }
+
+        return parts.isEmpty() ? "None" : String.join(", ", parts);
+    }
+
+    private String buildPolicySofteningSummary(ProjectPolicySnapshot policySnapshot) {
+        List<String> softeners = new ArrayList<>();
+        if (policySnapshot.cautions().contains(ProjectPolicyCaution.RULE_INPUT_MISSING)) {
+            softeners.add("missing rule input");
+        }
+        if (policySnapshot.cautions().contains(ProjectPolicyCaution.AMBIGUITY_PRESENT)) {
+            softeners.add("ambiguity");
+        }
+        if (policySnapshot.cautions().contains(ProjectPolicyCaution.HOTSPOT_PRESENT)) {
+            softeners.add("legacy hotspot");
+        }
+        if (policySnapshot.cautions().contains(ProjectPolicyCaution.LOW_CONFIDENCE_PRESENT)) {
+            softeners.add("low-confidence");
+        }
+        if (softeners.isEmpty()) {
+            return "";
+        }
+        return "Some conclusions remain softened by " + joinWithOr(softeners) + " cautions.";
+    }
+
+    private String joinWithOr(List<String> values) {
+        if (values.size() == 1) {
+            return values.get(0);
+        }
+        if (values.size() == 2) {
+            return values.get(0) + " or " + values.get(1);
+        }
+        return String.join(", ", values.subList(0, values.size() - 1))
+                + ", or "
+                + values.get(values.size() - 1);
     }
 
     private Map<String, Long> countBy(List<ContextSnapshot> files, Function<ContextSnapshot, String> classifier) {

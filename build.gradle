@@ -16,6 +16,7 @@ repositories {
 
 
 dependencies {
+    implementation 'org.yaml:snakeyaml:2.4'
     intellijPlatform {
         intellijIdea('2025.3.3')
         bundledPlugin('com.intellij.java')

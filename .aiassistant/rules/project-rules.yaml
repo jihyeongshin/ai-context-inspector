@@ -1,0 +1,26 @@
+version: 1
+rules:
+  - id: entrypoint-to-application
+    kind: expected_transition
+    description: Entry points should hand off to application layer.
+    from_affinity: EntryPointLike
+    to_affinity_any_of: [ApplicationLike]
+    level: guide
+
+  - id: prefer-persistence-or-adapter-terminal
+    kind: preferred_terminal_affinity
+    description: Main representative flows should terminate at persistence or adapter responsibilities.
+    affinity_any_of: [PersistenceLike, AdapterLike]
+    level: guide
+
+  - id: no-support-mid-flow
+    kind: discouraged_mid_affinity
+    description: Support/data/test classes should not dominate the middle of representative flows.
+    affinity_any_of: [SupportLike, DataLike, TestLike]
+    level: guide
+
+  - id: avoid-entrypoint-mid-flow
+    kind: discouraged_mid_affinity
+    description: Entry-point-like classes should not reappear in mid-flow.
+    affinity_any_of: [EntryPointLike]
+    level: guide

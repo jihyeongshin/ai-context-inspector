@@ -6,8 +6,10 @@ import com.intellij.psi.PsiJavaFile;
 import io.github.jihyeongshin.aicontextinspector.extractor.JavaContextExtractor;
 import io.github.jihyeongshin.aicontextinspector.extractor.ProjectJavaFileFinder;
 import io.github.jihyeongshin.aicontextinspector.model.ContextSnapshot;
+import io.github.jihyeongshin.aicontextinspector.model.ProjectRuleLoadResult;
 import io.github.jihyeongshin.aicontextinspector.model.ProjectContextSnapshot;
 
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -16,6 +18,7 @@ public class ProjectContextIndexer {
 
     private final ProjectJavaFileFinder projectJavaFileFinder = new ProjectJavaFileFinder();
     private final JavaContextExtractor javaContextExtractor = new JavaContextExtractor();
+    private final ProjectRuleLoader projectRuleLoader = new ProjectRuleLoader();
 
     public ProjectContextSnapshot index(Project project) {
         List<ContextSnapshot> snapshots = new ArrayList<>();
@@ -37,7 +40,20 @@ public class ProjectContextIndexer {
                         Comparator.nullsLast(String::compareTo)
                 )
         );
-        return new ProjectContextSnapshot(snapshots);
+        ProjectRuleLoadResult ruleLoadResult = projectRuleLoader.load(resolveProjectBasePath(project));
+        return new ProjectContextSnapshot(
+                snapshots,
+                ruleLoadResult.ruleSet(),
+                ruleLoadResult.ruleFileDetected(),
+                ruleLoadResult.ruleSourcePath(),
+                ruleLoadResult.rulesLoadedCount(),
+                ruleLoadResult.supportedRuleKindsSummary(),
+                ruleLoadResult.warnings()
+        );
     }
 
+    private Path resolveProjectBasePath(Project project) {
+        String basePath = project == null ? null : project.getBasePath();
+        return basePath == null || basePath.isBlank() ? null : Path.of(basePath);
+    }
 }
