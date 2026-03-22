@@ -75,7 +75,7 @@ public class ProjectRuleEvaluator {
                     aligned,
                     drift,
                     applicable,
-                    "possible drift in " + drift + " representative flows"
+                    "possible drift in " + formatCount(drift, "representative flow")
             );
         }
 
@@ -85,7 +85,7 @@ public class ProjectRuleEvaluator {
                 aligned,
                 0,
                 applicable,
-                "aligned with " + aligned + " representative flows"
+                "aligned with " + formatCount(aligned, "representative flow")
         );
     }
 
@@ -248,6 +248,10 @@ public class ProjectRuleEvaluator {
 
     private String normalize(String value) {
         return value == null || value.isBlank() ? "Unknown" : value;
+    }
+
+    private String formatCount(int count, String singularNoun) {
+        return count + " " + (count == 1 ? singularNoun : singularNoun + "s");
     }
 
     private record RuleMatchResult(boolean applicable, boolean aligned) {

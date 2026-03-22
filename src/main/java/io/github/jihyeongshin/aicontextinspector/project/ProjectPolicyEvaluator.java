@@ -251,8 +251,8 @@ public class ProjectPolicyEvaluator {
     private String buildStructureOnlySummary(ProjectPolicyEvidence evidence) {
         return "Current extracted evidence suggests representative flows remain broadly layered, but project rule input is not available."
                 + " Evidence is based on "
-                + evidence.representativeFlowCount()
-                + " representative flows.";
+                + formatCount(evidence.representativeFlowCount(), "representative flow")
+                + ".";
     }
 
     private String normalize(String value) {
@@ -272,5 +272,9 @@ public class ProjectPolicyEvaluator {
         return String.join(", ", affinities.subList(0, affinities.size() - 1))
                 + ", or "
                 + affinities.get(affinities.size() - 1);
+    }
+
+    private String formatCount(int count, String singularNoun) {
+        return count + " " + (count == 1 ? singularNoun : singularNoun + "s");
     }
 }
