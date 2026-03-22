@@ -1,0 +1,101 @@
+Project AI Context Index Summary
+
+Total Files: 42
+Endpoint Files: 6
+
+Role Counts
+- Application: 2
+- Config: 2
+- Controller: 6
+- Entity: 8
+- Repository: 3
+- Test: 15
+- Unknown: 5
+- Validator: 1
+
+Top Dependency Files
+- PetValidatorTests.java | deps=5 | role=Test
+- ClinicServiceTests.java | deps=4 | role=Test
+- I18nPropertiesSyncTest.java | deps=3 | role=Test
+- MySqlIntegrationTests.java | deps=3 | role=Test
+- PetControllerTests.java | deps=3 | role=Test
+
+Sample Files
+- PetClinicApplication.java | Application | org.springframework.samples.petclinic
+- PetClinicRuntimeHints.java | Unknown | org.springframework.samples.petclinic
+- BaseEntity.java | Entity | org.springframework.samples.petclinic.model
+- NamedEntity.java | Entity | org.springframework.samples.petclinic.model
+- Person.java | Unknown | org.springframework.samples.petclinic.model
+- Owner.java | Entity | org.springframework.samples.petclinic.owner
+- OwnerController.java | Controller | org.springframework.samples.petclinic.owner
+- OwnerRepository.java | Repository | org.springframework.samples.petclinic.owner
+- Pet.java | Entity | org.springframework.samples.petclinic.owner
+- PetController.java | Controller | org.springframework.samples.petclinic.owner
+
+Affinity Counts
+- DataLike: 10
+- EntryPointLike: 6
+- PersistenceLike: 3
+- SupportLike: 6
+- TestLike: 15
+- Unknown: 2
+
+Affinity Samples
+- DataLike: [BaseEntity, NamedEntity, Owner, Person, Pet]
+- EntryPointLike: [CrashController, OwnerController, PetController, VetController, VisitController]
+- PersistenceLike: [OwnerRepository, PetTypeRepository, VetRepository]
+- SupportLike: [CacheConfiguration, MysqlTestApplication, PetClinicApplication, PetTypeFormatter, PetValidator]
+- TestLike: [ClinicServiceTests, CrashControllerIntegrationTests, CrashControllerTests, I18nPropertiesSyncTest, MySqlIntegrationTests]
+- Unknown: [EntityUtils, PetClinicRuntimeHints]
+
+Trait Counts
+- AnemicDataLike: 7
+- BootstrapLike: 2
+- EntityBackedLike: 8
+
+Trait Samples
+- AnemicDataLike: [BaseEntity, NamedEntity, Person, Pet, Vet]
+- BootstrapLike: [MysqlTestApplication, PetClinicApplication]
+- EntityBackedLike: [NamedEntity, Owner, Person, Pet, PetType]
+
+Project Rule Input
+- Rule file detected: No
+- Rule source: C:\Users\shinji\IdeaProjects\spring-petclinic\.aiassistant\rules\project-rules.yaml
+- Rules loaded: 0
+- Load warnings: 0
+- Supported rule kinds: None
+
+Project Rule Signals
+- No project rules loaded
+
+Project Policy Summary
+- Overall policy posture: Weak signal
+- Evidence base: 4 representative flows, 0 ingested rules, 0 distinct multi-purpose entry points
+- Signal count by status: Weak signal (1)
+- Caution summary: rule input missing, unknown affinity present in 2 files
+
+Representative Flows
+- OwnerController -> OwnerRepository | roles=Controller -> Repository | score=113 | confidence=Medium | ambiguity=None | ambiguity-notes=None | notes=None | entry-point=Focused | interpretation-notes=None | legacy-hotspot=None | hotspot-notes=None
+- VetController -> VetRepository | roles=Controller -> Repository | score=113 | confidence=Medium | ambiguity=None | ambiguity-notes=None | notes=None | entry-point=Focused | interpretation-notes=None | legacy-hotspot=None | hotspot-notes=None
+- PetController -> PetTypeRepository | roles=Controller -> Repository | score=110 | confidence=Medium | ambiguity=None | ambiguity-notes=None | notes=None | entry-point=Focused | interpretation-notes=None | legacy-hotspot=None | hotspot-notes=None
+- VisitController -> OwnerRepository | roles=Controller -> Repository | score=107 | confidence=Medium | ambiguity=None | ambiguity-notes=None | notes=None | entry-point=Focused | interpretation-notes=None | legacy-hotspot=None | hotspot-notes=None
+
+Targeted Entry Point Interpretation Checks
+- None
+
+Unclassified Role Samples (5)
+Unclassified Roles - Data-like or Entity-backed (2)
+- Person
+- Vets
+
+Unclassified Roles - Support-like (1)
+- PetTypeFormatter
+
+Unclassified Roles - Other patterns (2)
+- EntityUtils
+- PetClinicRuntimeHints
+
+Unclassified Affinity Samples
+- EntityUtils
+- PetClinicRuntimeHints
+

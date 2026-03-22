@@ -4,9 +4,9 @@ import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
-import io.github.jihyeongshin.aicontextinspector.model.ProjectContextSnapshot;
-import io.github.jihyeongshin.aicontextinspector.project.ProjectContextIndexer;
-import io.github.jihyeongshin.aicontextinspector.render.ProjectContextDebugRenderer;
+import io.github.jihyeongshin.aicontextinspector.model.snapshot.ProjectContextSnapshot;
+import io.github.jihyeongshin.aicontextinspector.application.index.ProjectContextIndexer;
+import io.github.jihyeongshin.aicontextinspector.render.debug.ProjectContextDebugRenderer;
 import io.github.jihyeongshin.aicontextinspector.ui.ContextPreviewDialog;
 import org.jetbrains.annotations.NotNull;
 

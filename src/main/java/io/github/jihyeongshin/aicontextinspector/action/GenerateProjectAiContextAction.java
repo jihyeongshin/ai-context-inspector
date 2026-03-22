@@ -4,10 +4,10 @@ import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
-import io.github.jihyeongshin.aicontextinspector.model.ProjectContextExportResult;
-import io.github.jihyeongshin.aicontextinspector.model.ProjectContextSnapshot;
-import io.github.jihyeongshin.aicontextinspector.project.ProjectAiContextExporter;
-import io.github.jihyeongshin.aicontextinspector.project.ProjectContextIndexer;
+import io.github.jihyeongshin.aicontextinspector.model.snapshot.ProjectContextExportResult;
+import io.github.jihyeongshin.aicontextinspector.model.snapshot.ProjectContextSnapshot;
+import io.github.jihyeongshin.aicontextinspector.application.export.ProjectAiContextExporter;
+import io.github.jihyeongshin.aicontextinspector.application.index.ProjectContextIndexer;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
