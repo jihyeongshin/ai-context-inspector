@@ -205,7 +205,7 @@ public class ReadingGuidanceEvaluator {
             }
             message = "Representative flows remain usable for orientation, but "
                     + joinWithAnd(softeners)
-                    + " means some paths should be treated as provisional rather than canonical.";
+                    + " means some paths should be read with caution.";
         }
 
         return new GuidanceSignal("Representative flow trust", status, message);
@@ -267,13 +267,13 @@ public class ReadingGuidanceEvaluator {
             message = "Policy posture remains limited, so rule signals should be read as soft guidance rather than final structure claims.";
         }
 
-        return new GuidanceSignal("Rule and policy posture", status, message);
+        return new GuidanceSignal("Rule and policy guidance", status, message);
     }
 
     private GuidanceSignal buildUnknownSignal(GuidanceEvidence evidence) {
         if (evidence.unknownAffinityCount() == 0) {
             return new GuidanceSignal(
-                    "Unknown-heavy areas",
+                    "Unknown-affinity areas",
                     GuidanceSignalStatus.NOT_APPLICABLE,
                     "Current extracted evidence does not surface unknown-affinity pressure."
             );
@@ -283,7 +283,7 @@ public class ReadingGuidanceEvaluator {
                 ? GuidanceSignalStatus.CAUTION
                 : GuidanceSignalStatus.PROVISIONAL;
         return new GuidanceSignal(
-                "Unknown-heavy areas",
+                "Unknown-affinity areas",
                 status,
                 "Unknown-affinity areas should be treated as mapping gaps, not proven structural defects. Current extracted evidence still includes "
                         + formatCount(evidence.unknownAffinityCount(), "unknown-affinity file")
@@ -301,13 +301,13 @@ public class ReadingGuidanceEvaluator {
         lines.add(trustSignal.message());
 
         if (isCautionHeavy(evidence)) {
-            lines.add("Residual ambiguity means some flows should be treated as provisional rather than canonical.");
+            lines.add("Residual ambiguity and hotspot-sensitive paths mean some representative variants should be read comparatively, not as settled structure.");
         } else {
             lines.add(rulePolicySignal.message());
         }
 
         if (isUnknownHeavy(evidence)) {
-            lines.add("Unknown-heavy areas should be treated as mapping gaps, not proven structural defects.");
+            lines.add("Unknown-affinity areas should be treated as mapping gaps, not proven structural defects.");
         }
 
         return lines.stream()
@@ -324,7 +324,7 @@ public class ReadingGuidanceEvaluator {
                 || evidence.policySnapshot().overallStatus() == ProjectPolicyStatus.NOT_APPLICABLE) {
             notes.add("Weak or not-applicable policy posture should soften guidance rather than override raw evidence.");
         } else if (isCautionHeavy(evidence) || isUnknownHeavy(evidence)) {
-            notes.add("Mixed, hotspot-sensitive, or unknown-heavy areas should be read cautiously even when orientation paths look useful.");
+            notes.add("Mixed, hotspot-sensitive, or unknown-affinity areas should be read cautiously even when orientation paths look useful.");
         }
 
         return notes.stream()

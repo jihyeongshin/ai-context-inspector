@@ -1,7 +1,7 @@
 package io.github.jihyeongshin.aicontextinspector.model.guidance;
 
 public enum GuidanceSignalStatus {
-    STRONG_ORIENTATION("Strong orientation"),
+    STRONG_ORIENTATION("Qualified orientation"),
     CAUTION("Caution"),
     PROVISIONAL("Provisional"),
     NOT_APPLICABLE("Not applicable");
