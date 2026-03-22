@@ -1,7 +1,10 @@
 package io.github.jihyeongshin.aicontextinspector.render.artifact;
 
+import io.github.jihyeongshin.aicontextinspector.analysis.guidance.ReadingGuidanceEvaluator;
 import io.github.jihyeongshin.aicontextinspector.model.flow.EntryPointInterpretation;
 
+import io.github.jihyeongshin.aicontextinspector.model.guidance.GuidanceSignal;
+import io.github.jihyeongshin.aicontextinspector.model.guidance.ReadingGuidanceSummary;
 import io.github.jihyeongshin.aicontextinspector.model.source.ContextSnapshot;
 import io.github.jihyeongshin.aicontextinspector.model.flow.InterpretedRepresentativeFlow;
 import io.github.jihyeongshin.aicontextinspector.model.snapshot.ProjectContextSnapshot;
@@ -49,6 +52,7 @@ public class ProjectContextArtifactRenderer {
             new RepresentativeFlowEntryPointInterpreter();
     private final RepresentativeFlowLegacyHotspotInterpreter representativeFlowLegacyHotspotInterpreter =
             new RepresentativeFlowLegacyHotspotInterpreter();
+    private final ReadingGuidanceEvaluator readingGuidanceEvaluator = new ReadingGuidanceEvaluator();
     private final ProjectRuleEvaluator projectRuleEvaluator = new ProjectRuleEvaluator();
     private final ProjectPolicyEvaluator projectPolicyEvaluator = new ProjectPolicyEvaluator();
 
@@ -289,6 +293,7 @@ public class ProjectContextArtifactRenderer {
         StringBuilder sb = new StringBuilder();
         sb.append("# Architecture Rules").append("\n\n");
         ProjectPolicySnapshot policySnapshot = projectPolicyEvaluator.evaluate(snapshot, flows);
+        ReadingGuidanceSummary guidanceSummary = readingGuidanceEvaluator.evaluate(snapshot, flows);
         Map<String, Long> patterns = flows.stream()
                 .collect(Collectors.groupingBy(
                         RepresentativeFlow::toRoleDisplayString,
@@ -328,6 +333,7 @@ public class ProjectContextArtifactRenderer {
         appendBulletSection(sb, "Policy Layer Summary", buildPolicyLayerSummaryBullets(policySnapshot));
         appendBulletSection(sb, "Policy Signals", buildPolicySignalBullets(policySnapshot));
         appendBulletSection(sb, "Policy Cautions", buildPolicyCautionBullets(policySnapshot));
+        appendReadingGuidanceSection(sb, guidanceSummary);
 
         sb.append("## Representative Flow Policy").append("\n");
         sb.append("- Main representative flows prefer EntryPointLike to ApplicationLike transitions.").append("\n");
@@ -506,6 +512,42 @@ public class ProjectContextArtifactRenderer {
                     .append(entry.getValue())
                     .append("\n");
         }
+    }
+
+    private void appendReadingGuidanceSection(StringBuilder sb, ReadingGuidanceSummary guidanceSummary) {
+        sb.append("## Reading Guidance").append("\n\n");
+
+        sb.append("### Reading Guidance Summary").append("\n");
+        appendList(sb, guidanceSummary.summaryLines(), "- ");
+        sb.append("\n");
+
+        sb.append("### Guidance Signals").append("\n");
+        List<String> guidanceSignals = buildGuidanceSignalBullets(guidanceSummary);
+        appendList(sb, guidanceSignals, "- ");
+        sb.append("\n");
+
+        sb.append("### Guidance Notes").append("\n");
+        appendList(sb, guidanceSummary.notes(), "- ");
+        sb.append("\n");
+    }
+
+    private List<String> buildGuidanceSignalBullets(ReadingGuidanceSummary guidanceSummary) {
+        if (guidanceSummary == null || guidanceSummary.signals().isEmpty()) {
+            return List.of("None");
+        }
+
+        return guidanceSummary.signals().stream()
+                .map(this::formatGuidanceSignal)
+                .toList();
+    }
+
+    private String formatGuidanceSignal(GuidanceSignal signal) {
+        if (signal == null) {
+            return "None";
+        }
+        return signal.title()
+                + " (" + signal.status().displayName() + "): "
+                + signal.message();
     }
 
     private List<String> buildProjectRuleInputBullets(ProjectContextSnapshot snapshot) {
