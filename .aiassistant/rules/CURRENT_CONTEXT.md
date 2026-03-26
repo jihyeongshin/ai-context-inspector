@@ -201,8 +201,11 @@ Accepted V2 workstreams:
 
 The next task is:
 
-**Keep the accepted V2/V3 baseline stable and review whether any optional post-MVP guidance expansion is justified**
+**Review the narrow post-MVP enhancement scopes for raw-input boundary guidance and parser visibility**
 
 ---
+
+Post-MVP scope review documents are stored under `docs/plugin/`, not `.aiassistant/rules/`.
+They are reference/review materials for optional future work, not always-on plugin development rules.
 
 ## End
