@@ -25,9 +25,12 @@ V3 Slice 1 guidance output prototype is accepted.
 V3 Slice 2 narrow `architecture-rules.md` guidance integration is accepted.
 V3 Slice 3 wording/readability calibration is accepted.
 V3 guidance MVP is accepted.
+Post-MVP Enhancement 1 - Raw Input Boundary Guidance is accepted.
+Post-MVP Enhancement 2 - Parser Visibility is accepted.
 
-Completion confirmation date:
-- 2026-03-22
+Completion confirmation dates:
+- 2026-03-22 for the accepted V3 guidance MVP baseline
+- 2026-03-26 for the baseline maintenance refresh after accepted PM1 and PM2 closure
 
 Validation basis:
 - `Generate Project AI Context` was confirmed working in IDE sandbox
@@ -119,7 +122,7 @@ Adopted V1 baseline decision:
 
 ## Current product judgment
 
-The project now meets the V1 baseline definition, the planned V1.1 polish scope, the accepted V2 workstreams, and the accepted V3 guidance MVP:
+The project now meets the V1 baseline definition, the planned V1.1 polish scope, the accepted V2 workstreams, the accepted V3 guidance MVP, and the accepted narrow post-MVP enhancements:
 - project-level AI-readable context can be generated from code
 - representative flows are available at project level
 - persistent markdown artifacts are exported for downstream AI use
@@ -138,21 +141,25 @@ The project now meets the V1 baseline definition, the planned V1.1 polish scope,
 - V3 Slice 2 narrow `architecture-rules.md` guidance integration is accepted
 - V3 Slice 3 wording/readability calibration is accepted
 - V3 guidance MVP is accepted as a reading-aid layer on top of accepted V2 evidence
+- Post-MVP Enhancement 1 - Raw Input Boundary Guidance is accepted
+- Post-MVP Enhancement 2 - Parser Visibility is accepted
+- accepted post-MVP narrow enhancements remain closed
 - guidance remains descriptive and defensible rather than a codebase-truth engine
 
 Important judgment:
-- accepted V2 baseline should remain closed unless future generic review justifies reopening
-- accepted V3 guidance MVP should remain closed unless future generic review justifies reopening
-- the next work should default to optional future scope review, not immediate implementation
+- accepted V2 baseline remains closed unless future generic review justifies reopening
+- accepted V3 guidance MVP remains closed unless future generic review justifies reopening
+- accepted post-MVP enhancement workstreams remain closed
+- no new active enhancement workstream is open
 
 ---
 
 ## Remaining non-blocking issues
 
 These do not block the current accepted V1/V2/V3 baseline:
-- optional future stronger rule-aware guidance remains a review topic, not an active workstream
-- packaging or model hygiene can remain maintenance-only
-- `.aiassistant/rules/project-rules.yaml` in this repository remains a development validation fixture, not a plugin-global default policy
+- parser-bearing non-target external validation remains deferred and non-blocking
+- optional future stronger rule-aware guidance remains review-only
+- optional future parser-bearing external evidence can be collected if naturally available
 
 ---
 
@@ -201,11 +208,8 @@ Accepted V2 workstreams:
 
 The next task is:
 
-**Review the narrow post-MVP enhancement scopes for raw-input boundary guidance and parser visibility**
+**Keep the accepted baseline stable and only review future enhancement candidates when repeated generic evidence justifies reopening work**
 
 ---
-
-Post-MVP scope review documents are stored under `docs/plugin/`, not `.aiassistant/rules/`.
-They are reference/review materials for optional future work, not always-on plugin development rules.
 
 ## End

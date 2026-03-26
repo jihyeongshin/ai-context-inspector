@@ -21,6 +21,10 @@ Current status:
 
 **V3 guidance MVP completed and accepted**
 
+Maintenance note:
+- Post-MVP Enhancement 1 - Raw Input Boundary Guidance and Post-MVP Enhancement 2 - Parser Visibility were completed later as narrow accepted post-MVP enhancements.
+- No further active enhancement workstream is currently open.
+
 ---
 
 ## Why V3 starts with guidance, not stronger enforcement

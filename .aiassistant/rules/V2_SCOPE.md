@@ -1,5 +1,5 @@
 ---
-apply: always
+적용: 항상
 ---
 
 # V2 Scope - ai-context-inspector
