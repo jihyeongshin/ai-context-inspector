@@ -7,6 +7,7 @@ import io.github.jihyeongshin.aicontextinspector.model.flow.RepresentativeFlowAm
 import io.github.jihyeongshin.aicontextinspector.model.flow.RepresentativeFlowEntryPointInterpretation;
 import io.github.jihyeongshin.aicontextinspector.model.flow.RepresentativeFlowLegacyHotspotInterpretation;
 import io.github.jihyeongshin.aicontextinspector.model.guidance.GuidanceSignal;
+import io.github.jihyeongshin.aicontextinspector.model.guidance.ParserVisibilitySummary;
 import io.github.jihyeongshin.aicontextinspector.model.guidance.RawInputBoundaryGuidanceSummary;
 import io.github.jihyeongshin.aicontextinspector.model.guidance.ReadingGuidanceSummary;
 import io.github.jihyeongshin.aicontextinspector.model.policy.ProjectPolicyCaution;
@@ -21,6 +22,7 @@ import io.github.jihyeongshin.aicontextinspector.analysis.flow.RepresentativeFlo
 import io.github.jihyeongshin.aicontextinspector.analysis.flow.RepresentativeFlowEntryPointInterpreter;
 import io.github.jihyeongshin.aicontextinspector.analysis.flow.RepresentativeFlowLegacyHotspotInterpreter;
 import io.github.jihyeongshin.aicontextinspector.analysis.flow.RepresentativeFlowMetadataEvaluator;
+import io.github.jihyeongshin.aicontextinspector.analysis.guidance.ParserVisibilityEvaluator;
 import io.github.jihyeongshin.aicontextinspector.analysis.guidance.RawInputBoundaryGuidanceEvaluator;
 import io.github.jihyeongshin.aicontextinspector.analysis.guidance.ReadingGuidanceEvaluator;
 import io.github.jihyeongshin.aicontextinspector.analysis.policy.ProjectPolicyEvaluator;
@@ -44,6 +46,7 @@ public class ProjectContextDebugRenderer {
     private final RepresentativeFlowMetadataEvaluator representativeFlowMetadataEvaluator =
             new RepresentativeFlowMetadataEvaluator();
     private final ReadingGuidanceEvaluator readingGuidanceEvaluator = new ReadingGuidanceEvaluator();
+    private final ParserVisibilityEvaluator parserVisibilityEvaluator = new ParserVisibilityEvaluator();
     private final RawInputBoundaryGuidanceEvaluator rawInputBoundaryGuidanceEvaluator =
             new RawInputBoundaryGuidanceEvaluator();
     private final ProjectRuleEvaluator projectRuleEvaluator = new ProjectRuleEvaluator();
@@ -72,6 +75,7 @@ public class ProjectContextDebugRenderer {
         appendUnknownRoleSamples(sb, files);
         appendUnknownAffinitySamples(sb, files);
         appendReadingGuidance(sb, projectSnapshot);
+        appendParserVisibility(sb, projectSnapshot);
         appendRawInputBoundaryGuidance(sb, projectSnapshot);
 
         return sb.toString();
@@ -451,6 +455,29 @@ public class ProjectContextDebugRenderer {
 
         sb.append("Raw Input Boundary Notes").append("\n");
         appendGuidanceBulletList(sb, guidanceSummary.notes());
+        sb.append("\n");
+    }
+
+    private void appendParserVisibility(StringBuilder sb, ProjectContextSnapshot projectSnapshot) {
+        ParserVisibilitySummary visibilitySummary = parserVisibilityEvaluator.evaluate(projectSnapshot);
+        if (visibilitySummary.signals().isEmpty() && visibilitySummary.notes().isEmpty()) {
+            return;
+        }
+
+        sb.append("Parser Visibility").append("\n");
+        for (GuidanceSignal signal : visibilitySummary.signals()) {
+            sb.append("- ")
+                    .append(signal.title())
+                    .append(" | status=")
+                    .append(signal.status().displayName())
+                    .append(" | ")
+                    .append(signal.message())
+                    .append("\n");
+        }
+        sb.append("\n");
+
+        sb.append("Parser Visibility Notes").append("\n");
+        appendGuidanceBulletList(sb, visibilitySummary.notes());
         sb.append("\n");
     }
 

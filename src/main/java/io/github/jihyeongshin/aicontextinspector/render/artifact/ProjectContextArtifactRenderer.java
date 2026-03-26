@@ -1,9 +1,11 @@
 package io.github.jihyeongshin.aicontextinspector.render.artifact;
 
 import io.github.jihyeongshin.aicontextinspector.analysis.guidance.ReadingGuidanceEvaluator;
+import io.github.jihyeongshin.aicontextinspector.analysis.guidance.ParserVisibilityEvaluator;
 import io.github.jihyeongshin.aicontextinspector.model.flow.EntryPointInterpretation;
 
 import io.github.jihyeongshin.aicontextinspector.model.guidance.GuidanceSignal;
+import io.github.jihyeongshin.aicontextinspector.model.guidance.ParserVisibilitySummary;
 import io.github.jihyeongshin.aicontextinspector.model.guidance.ReadingGuidanceSummary;
 import io.github.jihyeongshin.aicontextinspector.model.source.ContextSnapshot;
 import io.github.jihyeongshin.aicontextinspector.model.flow.InterpretedRepresentativeFlow;
@@ -53,6 +55,7 @@ public class ProjectContextArtifactRenderer {
     private final RepresentativeFlowLegacyHotspotInterpreter representativeFlowLegacyHotspotInterpreter =
             new RepresentativeFlowLegacyHotspotInterpreter();
     private final ReadingGuidanceEvaluator readingGuidanceEvaluator = new ReadingGuidanceEvaluator();
+    private final ParserVisibilityEvaluator parserVisibilityEvaluator = new ParserVisibilityEvaluator();
     private final ProjectRuleEvaluator projectRuleEvaluator = new ProjectRuleEvaluator();
     private final ProjectPolicyEvaluator projectPolicyEvaluator = new ProjectPolicyEvaluator();
 
@@ -118,6 +121,7 @@ public class ProjectContextArtifactRenderer {
         long unmappedEntryPoints = entryPoints.size() - mappedEntryPoints;
         Map<String, Long> entryPointPackageCounts = countBy(entryPoints, file -> normalize(file.packageName()));
         Map<String, Long> entryPointRoleCounts = countBy(entryPoints, file -> normalize(file.classRole()));
+        ParserVisibilitySummary parserVisibilitySummary = parserVisibilityEvaluator.evaluate(snapshot);
         double averageEndpointsPerEntryPoint = entryPoints.isEmpty()
                 ? 0.0
                 : totalEndpoints / (double) entryPoints.size();
@@ -154,6 +158,13 @@ public class ProjectContextArtifactRenderer {
             sb.append("- Affinity: ").append(normalize(entryPoint.architectureAffinity())).append("\n");
             sb.append("- Endpoint count: ").append(safeList(entryPoint.endpoints()).size()).append("\n");
             sb.append("- Dependencies: ").append(formatInlineList(entryPoint.dependencies())).append("\n");
+            List<String> requestInterpretationHelpers = parserVisibilitySummary.entryPointHelpers()
+                    .getOrDefault(parserVisibilityEvaluator.entryPointIdentity(entryPoint), List.of());
+            if (!requestInterpretationHelpers.isEmpty()) {
+                sb.append("- Request interpretation helpers: ")
+                        .append(formatInlineList(requestInterpretationHelpers))
+                        .append("\n");
+            }
             sb.append("#### Endpoints").append("\n");
             appendList(sb, safeList(entryPoint.endpoints()), "- ");
             sb.append("\n");
